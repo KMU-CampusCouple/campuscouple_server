@@ -9,13 +9,22 @@ datasource db {
   provider = "postgresql"
 }
 
-// 유저 계정 정보 (Auth 중심)
+// 유저 계정 정보 (Toss OAuth 중심)
 model User {
   id            Int      @id @default(autoincrement())
-  email         String   @unique // 학교 이메일
-  password      String
-  isVerified    Boolean  @default(false)
+  
+  // Toss 관련 식별자
+  tossUserKey   BigInt   @unique // 토스에서 내려주는 443... 형태의 고유 유저 키 
+  
+  // 서비스 내부 식별용 (학교 메일)
+  email         String?  @unique // 토스에서 받은 이메일 혹은 학교 인증 이메일
+  
+  // 상태 관리
+  isVerified    Boolean  @default(false) // 학교 이메일 점유 인증 여부
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 프로필과의 1:1 관계
   profile       Profile?
 }
 

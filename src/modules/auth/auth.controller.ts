@@ -1,15 +1,17 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Headers } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendVerificationDto } from './dto/send-verification.dto';
 import { ConfirmVerificationDto } from './dto/confirm-verification.dto';
 import { LoginDto } from './dto/login.dto';
+import { TossLoginDto } from './dto/toss-login.dto';
 import { BaseResponse } from '../../common/dto/base-response.dto';
 
 @ApiTags('Auth')
@@ -85,29 +87,32 @@ export class AuthController {
       },
     },
   })
+  @ApiBearerAuth('JWT-auth')
   async confirmVerificationCode(
     @Body() dto: ConfirmVerificationDto,
+    @Headers() headers: any,
   ): Promise<BaseResponse<{ tempToken: string }>> {
     try {
-      const result = await this.authService.confirmVerificationCode(dto);
+      const token = headers?.authorization.replace('Bearer ', '');
+      const result = await this.authService.confirmVerificationCode(dto, token);
       return new BaseResponse(true, '인증이 완료되었습니다.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
   }
 
-  @Post('login')
+  @Post('toss-login')
   @ApiOperation({
-    summary: '로그인',
-    description: '이메일과 비밀번호로 로그인하여 JWT 토큰을 반환합니다.',
+    summary: '토스 로그인',
+    description: '토스 authorization code로 로그인하여 JWT 토큰을 반환합니다.',
   })
   @ApiOkResponse({
-    description: '로그인 성공',
+    description: '토스 로그인 성공',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '로그인 성공' },
+        message: { type: 'string', example: '토스 로그인 성공' },
         data: {
           type: 'object',
           properties: {
@@ -117,21 +122,21 @@ export class AuthController {
       },
     },
   })
-  @ApiUnauthorizedResponse({
-    description: '잘못된 자격 증명',
+  @ApiBadRequestResponse({
+    description: '토스 로그인 실패',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '잘못된 비밀번호입니다.' },
+        message: { type: 'string', example: '토스 로그인에 실패했습니다.' },
         data: { type: 'null' },
       },
     },
   })
-  async login(@Body() dto: LoginDto): Promise<BaseResponse<{ access_token: string }>> {
+  async tossLogin(@Body() dto: TossLoginDto): Promise<BaseResponse<{ access_token: string }>> {
     try {
-      const result = await this.authService.login(dto);
-      return new BaseResponse(true, '로그인 성공', result);
+      const result = await this.authService.tossLogin(dto);
+      return new BaseResponse(true, '토스 로그인 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

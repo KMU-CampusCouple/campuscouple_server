@@ -1,11 +1,14 @@
 import { Injectable, BadRequestException, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendVerificationDto } from './dto/send-verification.dto';
 import { ConfirmVerificationDto } from './dto/confirm-verification.dto';
 import { LoginDto } from './dto/login.dto';
+import { TossLoginDto } from './dto/toss-login.dto';
 import type { MailService } from '../../common/interfaces/mail.service.interface';
 import * as bcrypt from 'bcrypt';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +18,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private httpService: HttpService,
     @Inject('MailService') private mailService: MailService,
   ) {}
 
@@ -46,15 +50,30 @@ export class AuthService {
     return { message: '인증 코드가 발송되었습니다.' };
   }
 
-  async confirmVerificationCode(dto: ConfirmVerificationDto): Promise<{ tempToken: string }> {
+  async confirmVerificationCode(
+    dto: ConfirmVerificationDto,
+    token: string,
+  ): Promise<{ tempToken: string }> {
+    let payload: any;
     const stored = this.verificationCodes.get(dto.email.trim());
+
+    try {
+      payload = this.jwtService.verify(token);
+    } catch (error) {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+    }
+
+    if (!payload.tossUserKey) {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+    }
+
     if (!stored || stored.code !== dto.code || Date.now() > stored.expiry) {
       throw new BadRequestException('잘못된 인증 코드입니다.');
     }
 
     // 임시 토큰 발급 (프로필 등록까지 유효)
     const tempToken = this.jwtService.sign(
-      { email: dto.email, verified: true },
+      { email: dto.email, verified: true, tossUserKey: payload.tossUserKey },
       { expiresIn: '1h' },
     );
 
@@ -64,25 +83,51 @@ export class AuthService {
     return { tempToken };
   }
 
-  async login(dto: LoginDto): Promise<{ access_token: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      include: { profile: true },
-    });
+  async tossLogin(dto: TossLoginDto): Promise<{ access_token: string }> {
+    try {
+      // 1. authorizationCode로 accessToken 발급
+      const tokenResponse = await firstValueFrom(
+        this.httpService.post('https://apps-in-toss-api.toss.im/generate-token', {
+          authorizationCode: dto.authorizationCode,
+        }),
+      );
 
-    if (!user || !user.isVerified) {
-      throw new UnauthorizedException('인증되지 않은 사용자입니다.');
+      const { accessToken } = tokenResponse.data;
+
+      // 2. accessToken으로 userKey 조회
+      const userResponse = await firstValueFrom(
+        this.httpService.get('https://apps-in-toss-api.toss.im/login-me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+      );
+
+      const { userKey } = userResponse.data;
+
+      // 3. DB에서 tossUserKey로 사용자 조회 또는 생성
+      let user = await this.prisma.user.findUnique({
+        where: { tossUserKey: BigInt(userKey) },
+      });
+
+      if (!user) {
+        // 새 사용자 생성 (프로필은 나중에 등록)
+        user = await this.prisma.user.create({
+          data: {
+            tossUserKey: BigInt(userKey),
+            isVerified: false, // 토스 로그인은 자동 인증
+            email: `toss_${userKey}@temp.com`, // 임시 이메일 (실제로는 토스에서 이메일 제공받을 수 있음)
+          },
+        });
+      }
+
+      // 4. JWT 토큰 발급
+      const payload = { tossUserKey: user.tossUserKey, sub: user.id };
+      return {
+        access_token: this.jwtService.sign(payload),
+      };
+    } catch (error) {
+      throw new BadRequestException('토스 로그인에 실패했습니다.');
     }
-
-    // 비밀번호 검증 (bcrypt 사용)
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('잘못된 비밀번호입니다.');
-    }
-
-    const payload = { email: user.email, sub: user.id };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
   }
 }

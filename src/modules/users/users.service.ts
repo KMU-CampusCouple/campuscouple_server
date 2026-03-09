@@ -19,16 +19,15 @@ export class UsersService {
     } catch (error) {
       throw new UnauthorizedException('유효하지 않은 토큰입니다.');
     }
-
-    if (!payload.verified || !payload.email) {
+    if (!payload.verified || !payload.email || !payload.tossUserKey) {
       throw new UnauthorizedException('인증되지 않은 토큰입니다.');
     }
 
     // User 생성
-    const user = (await this.prisma.user.create({
+    const user = (await this.prisma.user.update({
+      where: { tossUserKey: payload.tossUserKey },
       data: {
         email: payload.email,
-        password: '', // 임시, 실제로는 해싱된 비밀번호
         isVerified: true,
         profile: {
           create: {

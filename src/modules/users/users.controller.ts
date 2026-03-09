@@ -53,13 +53,14 @@ export class UsersController {
       },
     },
   })
+  @ApiBearerAuth('JWT-auth')
   async createProfile(
     @Body() dto: CreateProfileDto,
-    @Headers('authorization') tempToken: string,
+    @Headers() headers: any,
   ): Promise<BaseResponse<{ userId: number; profileId: number }>> {
     try {
       // Bearer 토큰에서 tempToken 추출
-      const token = tempToken?.replace('Bearer ', '');
+      const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.usersService.createProfile(dto, token);
       return new BaseResponse(true, '프로필이 성공적으로 등록되었습니다.', result);
     } catch (error) {

@@ -75,11 +75,27 @@ export class CreateProfileDto {
 
   @ApiProperty({
     description: 'SNS 계정 정보',
-    example: { insta: 'hong_gildong', kakao: 'hong' },
+    example: {
+      insta: 'hong_gildong',
+      kakao: 'hong_gildong',
+      facebook: 'hong.gildong',
+      twitter: 'hong_gildong',
+      threads: 'hong_gildong',
+      line: 'hong_gildong',
+      telegram: 'hong_gildong',
+    },
     required: false,
   })
   @IsOptional()
-  snsAccounts?: { [key: string]: string };
+  snsAccounts?: {
+    insta?: string;
+    kakao?: string;
+    facebook?: string;
+    twitter?: string;
+    threads?: string;
+    line?: string;
+    telegram?: string;
+  };
 
   @ApiProperty({
     description: '프로필 이미지 URL',
