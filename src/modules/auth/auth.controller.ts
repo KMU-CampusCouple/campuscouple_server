@@ -1,16 +1,14 @@
-import { Controller, Post, Body, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Post, Body, Headers } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendVerificationDto } from './dto/send-verification.dto';
 import { ConfirmVerificationDto } from './dto/confirm-verification.dto';
-import { LoginDto } from './dto/login.dto';
 import { TossLoginDto } from './dto/toss-login.dto';
 import { BaseResponse } from '../../common/dto/base-response.dto';
 

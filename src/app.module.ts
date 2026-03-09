@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import { HttpModule } from '@nestjs/axios';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -7,10 +8,29 @@ import { PrismaService } from './prisma/prisma.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        try {
+          return {
+            store: await redisStore({
+              url: configService.get<string>('REDIS_URL') || 'redis://localhost:6379',
+              ttl: 300, // 초 단위 (5분)
+            }),
+          };
+        } catch (error) {
+          console.error('Redis 연결 실패, 메모리 캐시로 폴백:', error.message);
+          return { ttl: 300 }; // 실패 시 메모리 캐시 사용 (초 단위)
+        }
+      },
+    }),
     HttpModule,
     AuthModule,
     UsersModule,

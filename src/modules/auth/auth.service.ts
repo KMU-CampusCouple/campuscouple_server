@@ -1,25 +1,22 @@
 import { Injectable, BadRequestException, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { HttpService } from '@nestjs/axios';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendVerificationDto } from './dto/send-verification.dto';
 import { ConfirmVerificationDto } from './dto/confirm-verification.dto';
-import { LoginDto } from './dto/login.dto';
 import { TossLoginDto } from './dto/toss-login.dto';
 import type { MailService } from '../../common/interfaces/mail.service.interface';
-import * as bcrypt from 'bcrypt';
-import { firstValueFrom } from 'rxjs';
+import type { ITossService } from '../../common/interfaces/toss.service.interface';
 
 @Injectable()
 export class AuthService {
-  // 간단한 메모리 저장소 (실제로는 Redis나 DB 사용)
-  private verificationCodes = new Map<string, { code: string; expiry: number }>();
-
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject('MailService') private mailService: MailService,
+    @Inject('TossService') private readonly tossService: ITossService,
   ) {}
 
   async sendVerificationCode(dto: SendVerificationDto): Promise<{ message: string }> {
@@ -41,8 +38,7 @@ export class AuthService {
 
     // 6자리 랜덤 코드 생성
     const code = Math.random().toString().substr(2, 6);
-    const expiry = Date.now() + 5 * 60 * 1000; // 5분
-    this.verificationCodes.set(dto.email.trim(), { code, expiry });
+    await this.setVerificationCode(dto.email.trim(), code);
 
     // 이메일 발송
     await this.mailService.sendVerificationCode(dto.email.trim(), code);
@@ -55,8 +51,7 @@ export class AuthService {
     token: string,
   ): Promise<{ tempToken: string }> {
     let payload: any;
-    const stored = this.verificationCodes.get(dto.email.trim());
-
+    const storedCode = await this.getVerificationCode(dto.email.trim());
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
@@ -67,7 +62,7 @@ export class AuthService {
       throw new UnauthorizedException('유효하지 않은 토큰입니다.');
     }
 
-    if (!stored || stored.code !== dto.code || Date.now() > stored.expiry) {
+    if (!storedCode || storedCode !== dto.code) {
       throw new BadRequestException('잘못된 인증 코드입니다.');
     }
 
@@ -78,7 +73,10 @@ export class AuthService {
     );
 
     // 코드 사용 후 삭제
-    this.verificationCodes.delete(dto.email);
+    await this.deleteVerificationCode(dto.email);
+
+    // Step-up Auth: 임시 인증 데이터 저장 (15분)
+    await this.setTempAuthData(payload.tossUserKey.toString(), dto.email);
 
     return { tempToken };
   }
@@ -86,24 +84,10 @@ export class AuthService {
   async tossLogin(dto: TossLoginDto): Promise<{ access_token: string }> {
     try {
       // 1. authorizationCode로 accessToken 발급
-      const tokenResponse = await firstValueFrom(
-        this.httpService.post('https://apps-in-toss-api.toss.im/generate-token', {
-          authorizationCode: dto.authorizationCode,
-        }),
-      );
-
-      const { accessToken } = tokenResponse.data;
+      const accessToken = await this.tossService.getAccessToken(dto.authorizationCode);
 
       // 2. accessToken으로 userKey 조회
-      const userResponse = await firstValueFrom(
-        this.httpService.get('https://apps-in-toss-api.toss.im/login-me', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }),
-      );
-
-      const { userKey } = userResponse.data;
+      const userKey = await this.tossService.getUserKey(accessToken);
 
       // 3. DB에서 tossUserKey로 사용자 조회 또는 생성
       let user = await this.prisma.user.findUnique({
@@ -115,19 +99,45 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             tossUserKey: BigInt(userKey),
-            isVerified: false, // 토스 로그인은 자동 인증
+            isVerified: true, // 토스 로그인은 자동 인증
             email: `toss_${userKey}@temp.com`, // 임시 이메일 (실제로는 토스에서 이메일 제공받을 수 있음)
           },
         });
       }
 
       // 4. JWT 토큰 발급
-      const payload = { tossUserKey: user.tossUserKey, sub: user.id };
+      const payload = { tossUserKey: user.tossUserKey.toString(), sub: user.id };
       return {
         access_token: this.jwtService.sign(payload),
       };
     } catch (error) {
       throw new BadRequestException('토스 로그인에 실패했습니다.');
     }
+  }
+
+  // Redis 기반 인증 코드 관리
+  async setVerificationCode(email: string, code: string): Promise<void> {
+    await this.cacheManager.set(`verification:${email}`, code, 300000); // 5분 TTL (초 단위)
+  }
+
+  async getVerificationCode(email: string): Promise<string | undefined> {
+    return await this.cacheManager.get<string>(`verification:${email}`);
+  }
+
+  async deleteVerificationCode(email: string): Promise<void> {
+    await this.cacheManager.del(`verification:${email}`);
+  }
+
+  // Step-up Auth: 임시 인증 데이터 저장 (프로필 설정 단계에서 참조)
+  async setTempAuthData(tossUserKey: string, email: string): Promise<void> {
+    await this.cacheManager.set(`tempAuth:${tossUserKey}`, { email, tossUserKey }, 900); // 15분 TTL (초 단위)
+  }
+
+  async getTempAuthData(
+    tossUserKey: string,
+  ): Promise<{ email: string; tossUserKey: string } | undefined> {
+    return await this.cacheManager.get<{ email: string; tossUserKey: string }>(
+      `tempAuth:${tossUserKey}`,
+    );
   }
 }
