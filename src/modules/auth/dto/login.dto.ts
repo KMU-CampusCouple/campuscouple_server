@@ -1,7 +1,7 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class ConfirmVerificationDto {
+export class LoginDto {
   @ApiProperty({
     description: '학교 이메일 주소',
     example: 'student@university.ac.kr',
@@ -12,14 +12,11 @@ export class ConfirmVerificationDto {
   email: string;
 
   @ApiProperty({
-    description: '6자리 인증 코드',
-    example: '123456',
+    description: '비밀번호',
+    example: 'password123',
     required: true,
-    minLength: 6,
-    maxLength: 6,
   })
   @IsString()
   @IsNotEmpty()
-  @Length(6, 6)
-  code: string;
+  password: string;
 }
