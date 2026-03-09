@@ -1,5 +1,3 @@
-/generated/prisma
-
 # NestJS specific
 /dist
 /node_modules
