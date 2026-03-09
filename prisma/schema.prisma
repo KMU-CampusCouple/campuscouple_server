@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 유저 계정 정보 (Auth 중심)
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique // 학교 이메일
+  password      String
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  profile       Profile?
+}
+
+// 유저 프로필 정보 (서비스 활동 중심)
+model Profile {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id])
+
+  name         String
+  gender       String   // ENUM 추천: MALE, FEMALE
+  univ         String
+  major        String
+  studentId    String   // 학번 (예: 20213049)
+  mbti         String?
+  region       String   // 거주 지역 (ENUM 처리 예정)
+  intro        String?  // 한줄 소개
+  profileImage String?
+
+  // SNS 정보 (JSON 타입으로 유연하게 관리)
+  snsAccounts  Json?    // { "insta": "...", "kakao": "..." }
+
+  // 관계 설정
+  createdMeetings Meeting[] @relation("CreatedMeetings")
+  participations  MeetingParticipant[]
+  sentRequests    FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+}
+
+// 미팅 모집글
+model Meeting {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  location    String
+  dateTime    DateTime
+  capacity    Int      // 모집 인원
+
+  creatorId   Int
+  creator     Profile  @relation("CreatedMeetings", fields: [creatorId], references: [id])
+
+  participants MeetingParticipant[]
+  createdAt    DateTime @default(now())
+}
+
+// 미팅 참여/신청 중간 테이블
+model MeetingParticipant {
+  id        Int      @id @default(autoincrement())
+  meetingId Int
+  profileId Int
+  status    String   // PENDING, ACCEPTED, REJECTED
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  profile   Profile  @relation(fields: [profileId], references: [id])
+}
+
+// 친구 신청 및 목록
+model FriendRequest {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  status     String   // PENDING, ACCEPTED
+  sender     Profile  @relation("SentRequests", fields: [senderId], references: [id])
+  receiver   Profile  @relation("ReceivedRequests", fields: [receiverId], references: [id])
+}
