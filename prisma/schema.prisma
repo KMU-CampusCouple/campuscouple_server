@@ -54,6 +54,13 @@ model Profile {
   receivedRequests FriendRequest[] @relation("ReceivedRequests")
 }
 
+enum MeetingStatus {
+  OPEN      // 모집 중
+  CLOSED    // 모집 완료 (인원 충만)
+  FINISHED  // 미팅 종료 (시간 지남)
+  CANCELED  // 취소됨
+}
+
 // 미팅 모집글
 model Meeting {
   id          Int      @id @default(autoincrement())
@@ -62,6 +69,8 @@ model Meeting {
   location    String
   dateTime    DateTime
   capacity    Int      // 모집 인원
+
+  status      MeetingStatus @default(OPEN)
 
   creatorId   Int
   creator     Profile  @relation("CreatedMeetings", fields: [creatorId], references: [id])
@@ -75,9 +84,13 @@ model MeetingParticipant {
   id        Int      @id @default(autoincrement())
   meetingId Int
   profileId Int
+  groupId   String   // UUID
   status    String   // PENDING, ACCEPTED, REJECTED
+  description String?
   meeting   Meeting  @relation(fields: [meetingId], references: [id])
   profile   Profile  @relation(fields: [profileId], references: [id])
+
+  @@unique([meetingId, profileId]) // 한 미팅에 중복 신청 방지
 }
 
 // 친구 신청 및 목록

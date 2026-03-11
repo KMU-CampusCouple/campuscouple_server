@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { redisStore } from 'cache-manager-redis-yet';
+import { MeetingsModule } from './modules/meetings/meetings.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { redisStore } from 'cache-manager-redis-yet';
         },
       }),
     }),
+    MeetingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

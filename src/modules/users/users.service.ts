@@ -55,9 +55,20 @@ export class UsersService {
     };
   }
 
-  async getMyProfile(userId: number) {
+  async getMyProfile(token: string) {
+    let payload: any;
+
+    try {
+      payload = this.jwtService.verify(token);
+    } catch (error) {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+    }
+
+    if (!payload.tossUserKey || !payload.sub) {
+      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+    }
     const user = (await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: payload.sub },
       include: { profile: true },
     })) as User & { profile: Profile | null };
 

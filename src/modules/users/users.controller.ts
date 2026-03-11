@@ -4,7 +4,6 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -101,22 +100,13 @@ export class UsersController {
       },
     },
   })
-  @ApiUnauthorizedResponse({
-    description: 'JWT 토큰 필요 또는 토큰 유효하지 않음',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: false },
-        message: { type: 'string', example: 'Unauthorized' },
-        data: { type: 'null' },
-      },
-    },
-  })
-  async getMyProfile(): Promise<BaseResponse<any>> {
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getMyProfile(@Headers() headers: any): Promise<BaseResponse<any>> {
     try {
       // TODO: JWT에서 userId 추출
-      const userId = 1; // 임시
-      const result = await this.usersService.getMyProfile(userId);
+      const token = headers?.authorization.replace('Bearer ', '');
+      const result = await this.usersService.getMyProfile(token);
       return new BaseResponse(true, '프로필 조회 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
