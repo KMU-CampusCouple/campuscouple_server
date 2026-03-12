@@ -1,15 +1,18 @@
-import { Controller, Post, Get, Body, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { BaseResponse } from '../../common/dto/base-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -108,6 +111,40 @@ export class UsersController {
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.usersService.getMyProfile(token);
       return new BaseResponse(true, '프로필 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Get('me/meetings')
+  @ApiExtraModels(GetMeetingsSummaryDto)
+  @ApiOperation({
+    summary: '내가 쓴 미팅글 조회',
+    description: 'JWT 토큰으로 인증된 사용자가 작성한 미팅글을 조회합니다.',
+  })
+  @ApiOkResponse({
+    description: '내가 쓴 미팅글 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '내가 쓴 미팅글 조회 성공' },
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(GetMeetingsSummaryDto),
+          },
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getMyMeetings(@Req() req: any): Promise<BaseResponse<GetMeetingsSummaryDto[]>> {
+    try {
+      const profileId = req.user.profile.id;
+      const result = await this.usersService.getMyMeetings(profileId);
+      return new BaseResponse(true, '내가 쓴 미팅글 조회 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

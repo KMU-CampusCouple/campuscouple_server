@@ -143,12 +143,12 @@ export class MeetingsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   async deleteMeeting(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) meetingId: number,
     @Req() req: any,
   ): Promise<BaseResponse<any>> {
     try {
       const profileId = req.user.profile.id;
-      await this.meetingsService.deleteMeeting(id, profileId);
+      await this.meetingsService.deleteMeeting(meetingId, profileId);
       return new BaseResponse(true, '미팅글이 삭제되었습니다.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;

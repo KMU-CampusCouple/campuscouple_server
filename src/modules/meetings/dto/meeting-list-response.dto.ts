@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 
 // 작성자(유저) 정보 요약
 class CreatorSummaryDto {
-  @ApiProperty({ example: '코딩하는재영' })
-  nickname: string;
+  @ApiProperty({ example: '이재영' })
+  name: string;
 
   @ApiProperty({ example: '소프트웨어학부' })
   major: string;
@@ -23,14 +23,21 @@ export class MeetingItemDto {
   @ApiProperty({ example: 3, description: '미팅 인원 (N:N)' })
   memberCount: number;
 
+  @ApiProperty({ example: 1, description: '현재 확정된 인원수' })
+  currentCount: number;
+
   @ApiProperty({ example: 'OPEN', enum: ['OPEN', 'CLOSED'] })
   status: string;
 
   @ApiProperty({ example: '2026-03-09T15:00:00.000Z' })
-  createdAt: Date;
+  dateTime: string;
 
   @ApiProperty({ type: CreatorSummaryDto })
   creator: CreatorSummaryDto;
+
+  constructor(partial: Partial<MeetingItemDto>) {
+    Object.assign(this, partial);
+  }
 }
 
 // 최종 응답 데이터 구조 (페이징 정보 포함)

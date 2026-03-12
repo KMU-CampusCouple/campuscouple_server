@@ -2,15 +2,27 @@ import { ApiProperty } from '@nestjs/swagger';
 
 // 작성자(유저) 정보 요약
 class CreatorSummaryDto {
-  @ApiProperty({ example: '코딩하는재영' })
-  nickname: string;
+  @ApiProperty({ example: '이재영' })
+  name: string;
 
   @ApiProperty({ example: '소프트웨어학부' })
   major: string;
 }
 
+// 신청자 정보 요약
+class ParticipantSummaryDto {
+  @ApiProperty({ example: '이재영' })
+  name: string;
+
+  @ApiProperty({ example: '소프트웨어학부' })
+  major: string;
+
+  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  profileImage: string | null;
+}
+
 // 미팅신청자 프로필 정보
-class ProfileParticipantDto {
+export class ProfileParticipantDto {
   @ApiProperty({ example: 1 })
   id: number;
 
@@ -22,6 +34,13 @@ class ProfileParticipantDto {
 
   @ApiProperty({ example: 'PENDING' })
   status: string;
+
+  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  profile: ParticipantSummaryDto;
+
+  constructor(partial: Partial<ProfileParticipantDto>) {
+    Object.assign(this, partial);
+  }
 }
 
 // 최종 응답 데이터 구조 (페이징 정보 포함)
@@ -48,15 +67,19 @@ export class MeetingDetailResponseDto {
   status: string;
 
   @ApiProperty({ example: '2026-03-09T15:00:00.000Z' })
-  createdAt: Date;
+  dateTime: string;
 
   @ApiProperty({ type: CreatorSummaryDto })
   creator: CreatorSummaryDto;
 
-  @ApiProperty({ type: [ProfileParticipantDto] })
+  @ApiProperty({
+    type: [ProfileParticipantDto],
+    nullable: true,
+    description: 'isOwner가 true일 경우에만 데이터가 포함되며, 일반 유저에게는 null이 반환됩니다.',
+  })
   participants?: ProfileParticipantDto[] | null;
 
-  @ApiProperty({ example: 1, description: '해당 미팅글 생성자인지' })
+  @ApiProperty({ example: true, description: '해당 미팅글 생성자인지' })
   isOwner: boolean;
 
   constructor(partial: Partial<MeetingDetailResponseDto>) {

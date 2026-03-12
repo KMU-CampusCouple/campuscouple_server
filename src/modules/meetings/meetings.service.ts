@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GetMeetingsDto } from './dto/get-meetings.dto';
 import { MeetingStatus } from '@prisma/client';
-import { MeetingListResponseDto } from './dto/meeting-list-response.dto';
+import { MeetingItemDto, MeetingListResponseDto } from './dto/meeting-list-response.dto';
 import { MeetingDetailResponseDto } from './dto/meeting-detail-response.dto';
 import { PostMeetingRequestDto, PostMeetingResponseDto } from './dto/post-meeting.dto';
 import { PostMeetingParticipationDto } from './dto/post-meeting-participantation.dto';
@@ -78,7 +78,9 @@ export class MeetingsService {
             },
           },
           _count: {
-            select: { participants: true }, // 현재 참여 인원수 확인용
+            select: {
+              participants: { where: { status: 'ACCEPTED' } },
+            },
           },
         },
         orderBy,
@@ -87,18 +89,22 @@ export class MeetingsService {
       }),
     ]);
 
-    const meetingItems = meetings.map((m) => ({
-      id: m.id,
-      title: m.title,
-      location: m.location,
-      memberCount: m.capacity,
-      status: m.status,
-      createdAt: m.createdAt,
-      creator: {
-        nickname: m.creator.name,
-        major: m.creator.major,
-      },
-    }));
+    const meetingItems = meetings.map(
+      (m) =>
+        new MeetingItemDto({
+          id: m.id,
+          title: m.title,
+          location: m.location,
+          memberCount: m.capacity,
+          currentCount: m._count.participants,
+          status: m.status,
+          dateTime: m.dateTime.toISOString(),
+          creator: {
+            name: m.creator.name,
+            major: m.creator.major,
+          },
+        }),
+    );
 
     return new MeetingListResponseDto({
       meetings: meetingItems,
@@ -124,7 +130,7 @@ export class MeetingsService {
         participants: {
           include: {
             profile: {
-              select: { name: true, major: true },
+              select: { name: true, major: true, profileImage: true },
             },
           },
         },
@@ -165,12 +171,24 @@ export class MeetingsService {
       currentCount: meeting._count.participants,
       pendingGroupCount: pendingGroupCount,
       status: meeting.status,
-      createdAt: meeting.createdAt,
+      dateTime: meeting.dateTime.toISOString(),
       creator: {
-        nickname: meeting.creator.name,
+        name: meeting.creator.name,
         major: meeting.creator.major,
       },
-      participants: isOwner ? meeting.participants : null,
+      participants: isOwner
+        ? meeting.participants.map((p) => ({
+            id: p.id,
+            meetingId: p.meetingId,
+            profileId: p.profileId,
+            status: p.status,
+            profile: {
+              name: p.profile.name,
+              major: p.profile.major,
+              profileImage: p.profile.profileImage,
+            },
+          }))
+        : null,
       isOwner: isOwner,
     });
   }

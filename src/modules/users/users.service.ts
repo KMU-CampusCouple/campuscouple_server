@@ -1,8 +1,14 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { User, Profile } from '@prisma/client';
+import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 
 @Injectable()
 export class UsersService {
@@ -84,5 +90,39 @@ export class UsersService {
       snsAccounts: user.profile.snsAccounts as any,
       // 필요한 필드 추가
     };
+  }
+
+  async getMyMeetings(profileId: number) {
+    const meetings = await this.prisma.meeting.findMany({
+      where: { creatorId: profileId },
+      include: {
+        participants: {
+          include: {
+            profile: {
+              select: { profileImage: true },
+            },
+          },
+        },
+        _count: {
+          select: {
+            participants: { where: { status: 'ACCEPTED' } },
+          },
+        },
+      },
+    });
+
+    if (meetings.length === 0) {
+      throw new NotFoundException('사용자가 작성한 미팅글이 없습니다.');
+    }
+
+    return meetings.map((meeting) => {
+      return new GetMeetingsSummaryDto({
+        id: meeting.id,
+        title: meeting.title,
+        memberCount: meeting.capacity,
+        currentCount: meeting._count.participants,
+        participants: meeting.participants,
+      });
+    });
   }
 }
