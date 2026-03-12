@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Headers, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards, Req, Patch } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -13,6 +13,7 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { BaseResponse } from '../../common/dto/base-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -71,8 +72,6 @@ export class UsersController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: '내 프로필 조회',
     description: 'JWT 토큰으로 인증된 사용자의 프로필 정보를 조회합니다.',
@@ -103,6 +102,17 @@ export class UsersController {
       },
     },
   })
+  @ApiBadRequestResponse({
+    description: '잘못된 요청 데이터',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: '유효하지 않은 토큰입니다.' },
+        data: { type: 'null' },
+      },
+    },
+  })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   async getMyProfile(@Headers() headers: any): Promise<BaseResponse<any>> {
@@ -111,6 +121,48 @@ export class UsersController {
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.usersService.getMyProfile(token);
       return new BaseResponse(true, '프로필 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Patch('profile')
+  @ApiOperation({
+    summary: '내 프로필 수정',
+    description: '내 프로필 정보를 선택적으로 수정합니다.',
+  })
+  @ApiOkResponse({
+    description: '프로필 수정 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '프로필 수정 성공' },
+        data: { type: 'null' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: '잘못된 요청 데이터',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: '유효하지 않은 토큰입니다.' },
+        data: { type: 'null' },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async updateProfile(
+    @Req() req: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.usersService.updateProfile(updateProfileDto, profileId);
+      return new BaseResponse(true, '프로필 변경 성공', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

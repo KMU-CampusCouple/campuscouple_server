@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { User, Profile } from '@prisma/client';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -90,6 +91,21 @@ export class UsersService {
       snsAccounts: user.profile.snsAccounts as any,
       // 필요한 필드 추가
     };
+  }
+
+  async updateProfile(updateProfileDto: UpdateProfileDto, profileId: number) {
+    const updateProfile = Object.entries(updateProfileDto).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+
+      return acc;
+    }, {});
+
+    await this.prisma.profile.update({
+      where: { id: profileId },
+      data: updateProfile,
+    });
   }
 
   async getMyMeetings(profileId: number) {
