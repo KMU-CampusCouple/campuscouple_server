@@ -177,4 +177,55 @@ export class UsersService {
       });
     });
   }
+
+  async getMyMatchedMeetings(profileId: number) {
+    const matchedParticipations = await this.prisma.meetingParticipant.findMany({
+      where: {
+        profileId: profileId,
+        status: 'ACCEPTED',
+        meeting: {
+          NOT: {
+            creatorId: profileId,
+          },
+        },
+      },
+      include: {
+        meeting: {
+          include: {
+            participants: {
+              include: {
+                profile: {
+                  select: { profileImage: true },
+                },
+              },
+            },
+            _count: {
+              select: { participants: { where: { status: 'ACCEPTED' } } },
+            },
+          },
+        },
+      },
+      orderBy: {
+        meeting: {
+          dateTime: 'desc',
+        },
+      },
+    });
+
+    if (matchedParticipations.length === 0) {
+      throw new NotFoundException('사용자가 매칭된 미팅글이 없습니다.');
+    }
+
+    return matchedParticipations.map((meetingParticipant) => {
+      return new GetMeetingsSummaryDto({
+        id: meetingParticipant.meeting.id,
+        title: meetingParticipant.meeting.title,
+        memberCount: meetingParticipant.meeting.capacity,
+        currentCount: meetingParticipant.meeting._count.participants,
+        participants: meetingParticipant.meeting.participants.map((p) => ({
+          profileImage: p.profile.profileImage,
+        })),
+      });
+    });
+  }
 }

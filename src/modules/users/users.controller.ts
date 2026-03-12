@@ -178,7 +178,41 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getMyParticipations(profileId);
-      return new BaseResponse(true, '내가 신청항 미팅글 조회 성공', result);
+      return new BaseResponse(true, '내가 신청한 미팅글 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Get('me/matched-meetings')
+  @ApiExtraModels(GetMeetingsSummaryDto)
+  @ApiOperation({
+    summary: '매칭된 미팅글 조회',
+    description: 'JWT 토큰으로 인증된 사용자가 매칭된 미팅글을 조회합니다.',
+  })
+  @ApiOkResponse({
+    description: '매칭된 미팅글 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '매칭된 미팅글 조회 성공' },
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(GetMeetingsSummaryDto),
+          },
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getMyMatchedMeetings(@Req() req: any): Promise<BaseResponse<GetMeetingsSummaryDto[]>> {
+    try {
+      const profileId = req.user.profile.id;
+      const result = await this.usersService.getMyMatchedMeetings(profileId);
+      return new BaseResponse(true, '매칭된 미팅글 조회 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

@@ -236,7 +236,7 @@ export class MeetingsController {
     try {
       const token = headers?.authorization.replace('Bearer ', '');
       await this.meetingsService.postMeetingParticipation(postMeetingParticipantion, token);
-      return new BaseResponse(true, '미팅글 생성 성공', null);
+      return new BaseResponse(true, '미팅 신청 성공', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
