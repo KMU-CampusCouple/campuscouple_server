@@ -149,4 +149,38 @@ export class UsersController {
       return new BaseResponse(false, error.message) as any;
     }
   }
+
+  @Get('me/participations')
+  @ApiExtraModels(GetMeetingsSummaryDto)
+  @ApiOperation({
+    summary: '내가 신청한 미팅글 조회',
+    description: 'JWT 토큰으로 인증된 사용자가 신청한 미팅글을 조회합니다.',
+  })
+  @ApiOkResponse({
+    description: '내가 신청한 미팅글 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '내가 신청한 미팅글 조회 성공' },
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(GetMeetingsSummaryDto),
+          },
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getMyParticipations(@Req() req: any): Promise<BaseResponse<GetMeetingsSummaryDto[]>> {
+    try {
+      const profileId = req.user.profile.id;
+      const result = await this.usersService.getMyParticipations(profileId);
+      return new BaseResponse(true, '내가 신청항 미팅글 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
 }

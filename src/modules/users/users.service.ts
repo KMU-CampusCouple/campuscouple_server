@@ -121,7 +121,59 @@ export class UsersService {
         title: meeting.title,
         memberCount: meeting.capacity,
         currentCount: meeting._count.participants,
-        participants: meeting.participants,
+        participants: meeting.participants.map((p) => ({
+          profileImage: p.profile.profileImage,
+        })),
+      });
+    });
+  }
+
+  async getMyParticipations(profileId: number) {
+    const meetingParticipants = await this.prisma.meetingParticipant.findMany({
+      where: {
+        profileId: profileId,
+        meeting: {
+          NOT: {
+            creatorId: profileId,
+          },
+        },
+      },
+      include: {
+        meeting: {
+          include: {
+            participants: {
+              include: {
+                profile: {
+                  select: { profileImage: true },
+                },
+              },
+            },
+            _count: {
+              select: { participants: { where: { status: 'ACCEPTED' } } },
+            },
+          },
+        },
+      },
+      orderBy: {
+        meeting: {
+          createdAt: 'desc',
+        },
+      },
+    });
+
+    if (meetingParticipants.length === 0) {
+      throw new NotFoundException('사용자가 신청한 미팅글이 없습니다.');
+    }
+
+    return meetingParticipants.map((meetingParticipant) => {
+      return new GetMeetingsSummaryDto({
+        id: meetingParticipant.meeting.id,
+        title: meetingParticipant.meeting.title,
+        memberCount: meetingParticipant.meeting.capacity,
+        currentCount: meetingParticipant.meeting._count.participants,
+        participants: meetingParticipant.meeting.participants.map((p) => ({
+          profileImage: p.profile.profileImage,
+        })),
       });
     });
   }

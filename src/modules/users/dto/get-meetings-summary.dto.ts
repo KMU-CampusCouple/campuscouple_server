@@ -3,8 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 
 // 미팅신청자 프로필 정보
 class ProfileParticipantDto {
-  @ApiProperty({ example: 3 })
-  profileId: number;
+  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  profileImage: string | null;
 }
 
 export class GetMeetingsSummaryDto {
