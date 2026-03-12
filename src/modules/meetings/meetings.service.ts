@@ -175,6 +175,31 @@ export class MeetingsService {
     });
   }
 
+  async deleteMeeting(meetingId: number, profileId: number) {
+    await this.prisma.$transaction(async (tx) => {
+      const meeting = await tx.meeting.findUnique({
+        where: { id: meetingId },
+        select: { creatorId: true },
+      });
+
+      if (!meeting) {
+        throw new NotFoundException(`${meetingId}번 미팅을 찾을 수 없습니다.`);
+      }
+
+      if (meeting.creatorId !== profileId) {
+        throw new ForbiddenException('삭제 권한이 없습니다.');
+      }
+
+      await tx.meetingParticipant.deleteMany({
+        where: { meetingId: meetingId },
+      });
+
+      await tx.meeting.delete({
+        where: { id: meetingId },
+      });
+    });
+  }
+
   async postMeeting(postMeetingRequestDto: PostMeetingRequestDto, token: string) {
     let payload: any;
 
@@ -304,8 +329,7 @@ export class MeetingsService {
         include: { _count: { select: { participants: { where: { status: 'ACCEPTED' } } } } },
       });
 
-      if (meeting?.creatorId !== profileId)
-        throw new ForbiddenException('해당 미팅에 대한 승인 권한이 없습니다.');
+      if (meeting?.creatorId !== profileId) throw new ForbiddenException('승인 권한이 없습니다.');
 
       const groupParticipants = await tx.meetingParticipant.findMany({
         where: { meetingId, groupId, status: 'PENDING' },

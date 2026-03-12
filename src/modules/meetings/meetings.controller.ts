@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -120,6 +121,35 @@ export class MeetingsController {
       const userId: number = req.user.id;
       const result = await this.meetingsService.getMeetingDetail(id, userId);
       return new BaseResponse(true, '미팅글 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: '미팅글 삭제',
+    description: '방장 권한이 있는 경우에만 미팅글을 삭제합니다.',
+  })
+  @ApiOkResponse({
+    schema: {
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '미팅글이 삭제되었습니다.' },
+        data: { type: 'object', example: null, nullable: true },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async deleteMeeting(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.meetingsService.deleteMeeting(id, profileId);
+      return new BaseResponse(true, '미팅글이 삭제되었습니다.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -248,7 +278,6 @@ export class MeetingsController {
   ): Promise<BaseResponse<any>> {
     try {
       const profileId: number = req.user.profile.id;
-      console.log(req.user);
       await this.meetingsService.acceptParticipantGroup(meetingId, acceptDto.groupId, profileId);
       return new BaseResponse(true, '그룹 신청 승인 성공', null);
     } catch (error) {
