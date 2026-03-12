@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -8,7 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GetMeetingsDto } from './dto/get-meetings.dto';
 import { MeetingStatus } from '@prisma/client';
-import { GetMeetingDetailDto } from './dto/get-meeting-detail.dto';
 import { MeetingListResponseDto } from './dto/meeting-list-response.dto';
 import { MeetingDetailResponseDto } from './dto/meeting-detail-response.dto';
 import { PostMeetingRequestDto, PostMeetingResponseDto } from './dto/post-meeting.dto';
@@ -108,27 +108,14 @@ export class MeetingsService {
     });
   }
 
-  async getMeetingDetail(getMeetingDetailDto: GetMeetingDetailDto, token: string) {
-    let payload: any;
-
-    try {
-      payload = this.jwtService.verify(token);
-    } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-    }
-
-    if (!payload.tossUserKey || !payload.sub) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
-    }
-
+  async getMeetingDetail(id: number, userId: number) {
     const userProfile = await this.prisma.profile.findUnique({
-      where: { userId: payload.sub },
+      where: { userId: userId },
       select: { id: true },
     });
 
     if (!userProfile) throw new NotFoundException('프로필을 찾을 수 없습니다.');
 
-    const { id } = getMeetingDetailDto;
     const currentProfileId = userProfile.id; // 현재 접속 유저 ID
 
     const meeting = await this.prisma.meeting.findUnique({
@@ -308,5 +295,39 @@ export class MeetingsService {
     });
 
     return true;
+  }
+
+  async acceptParticipantGroup(meetingId: number, groupId: string, profileId: number) {
+    await this.prisma.$transaction(async (tx) => {
+      const meeting = await tx.meeting.findUnique({
+        where: { id: meetingId },
+        include: { _count: { select: { participants: { where: { status: 'ACCEPTED' } } } } },
+      });
+
+      if (meeting?.creatorId !== profileId)
+        throw new ForbiddenException('해당 미팅에 대한 승인 권한이 없습니다.');
+
+      const groupParticipants = await tx.meetingParticipant.findMany({
+        where: { meetingId, groupId, status: 'PENDING' },
+      });
+
+      const incomingCount = groupParticipants.length;
+
+      if (meeting._count.participants + incomingCount > meeting.capacity) {
+        throw new BadRequestException('수락 시 최대 인원을 초과합니다.');
+      }
+
+      await tx.meetingParticipant.updateMany({
+        where: { meetingId, groupId },
+        data: { status: 'ACCEPTED' },
+      });
+
+      if (meeting._count.participants + incomingCount === meeting.capacity) {
+        await tx.meeting.update({
+          where: { id: meetingId },
+          data: { status: 'CLOSED' },
+        });
+      }
+    });
   }
 }
