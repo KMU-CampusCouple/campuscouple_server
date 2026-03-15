@@ -10,6 +10,8 @@ import { UsersModule } from './modules/users/users.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { redisStore } from 'cache-manager-redis-yet';
 import { MeetingsModule } from './modules/meetings/meetings.module';
+import { FriendsController } from './modules/friends/friends.controller';
+import { FriendsModule } from './modules/friends/friends.module';
 
 @Module({
   imports: [
@@ -55,8 +57,9 @@ import { MeetingsModule } from './modules/meetings/meetings.module';
       }),
     }),
     MeetingsModule,
+    FriendsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, FriendsController],
   providers: [AppService, PrismaService],
 })
 export class AppModule {}
