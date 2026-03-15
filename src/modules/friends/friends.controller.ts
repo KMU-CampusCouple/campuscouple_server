@@ -98,7 +98,7 @@ export class FriendsController {
     }
   }
 
-  @Get('reqeusts')
+  @Get('requests')
   @ApiExtraModels(GetFriendRequestsDto)
   @ApiOperation({
     summary: '친구 신청 목록 조회',
