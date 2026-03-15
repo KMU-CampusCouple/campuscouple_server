@@ -10,6 +10,7 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { User, Profile } from '@prisma/client';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { GetSearchProfilesDto, SearchProfileDto } from './dto/get-search-profiles-dto';
 
 @Injectable()
 export class UsersService {
@@ -44,7 +45,6 @@ export class UsersService {
             major: createProfileDto.major,
             studentId: createProfileDto.studentId,
             mbti: createProfileDto.mbti,
-            region: createProfileDto.region,
             intro: createProfileDto.intro,
             snsAccounts: createProfileDto.snsAccounts as any,
             profileImage: createProfileDto.profileImage,
@@ -243,5 +243,52 @@ export class UsersService {
         })),
       });
     });
+  }
+
+  async getSearchProfiles(profileId: number, keyword: string) {
+    const profiles = await this.prisma.profile.findMany({
+      where: {
+        AND: [
+          { id: { not: profileId } },
+          {
+            OR: [
+              { name: { contains: keyword, mode: 'insensitive' } },
+              { univ: { contains: keyword, mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
+      include: {
+        sentRequests: { where: { receiverId: profileId } },
+        receivedRequests: { where: { senderId: profileId } },
+        friendAsUser1: { where: { user2Id: profileId } },
+        friendAsUser2: { where: { user1Id: profileId } },
+      },
+      take: 20,
+    });
+
+    const result = new GetSearchProfilesDto({
+      profiles: profiles.map((profile) => {
+        let status: 'FRIEND' | 'PENDING' | 'NONE' = 'NONE';
+
+        if (profile.friendAsUser1.length > 0 || profile.friendAsUser2.length > 0) {
+          status = 'FRIEND';
+        } else {
+          const allRequests = [...profile.sentRequests, ...profile.receivedRequests];
+          const isPending = allRequests.some((req) => req.status === 'PENDING');
+          if (isPending) status = 'PENDING';
+        }
+
+        return new SearchProfileDto({
+          profileId: profile.id,
+          name: profile.name,
+          univ: profile.univ,
+          profileImage: profile.profileImage,
+          friendStatus: status,
+        });
+      }),
+    });
+
+    return result;
   }
 }

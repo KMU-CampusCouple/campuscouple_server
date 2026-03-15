@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Headers, UseGuards, Req, Patch } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards, Req, Patch, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,6 +14,7 @@ import { BaseResponse } from '../../common/dto/base-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { GetSearchProfilesDto } from './dto/get-search-profiles-dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -265,6 +266,43 @@ export class UsersController {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getMyMatchedMeetings(profileId);
       return new BaseResponse(true, '매칭된 미팅글 조회 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Get('search')
+  @ApiExtraModels(GetSearchProfilesDto)
+  @ApiOperation({
+    summary: '프로필 검색',
+    description: '사용자가 검색한 키워드를 바탕으로 유저 프로필을 검색합니다.',
+  })
+  @ApiOkResponse({
+    description: '프로필 검색 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '프로필 검색 성공' },
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(GetSearchProfilesDto),
+          },
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getSearchProfiles(
+    @Param('keyword') keyword: string,
+    @Req() req: any,
+  ): Promise<BaseResponse<GetSearchProfilesDto>> {
+    try {
+      const profileId = req.user.profile.id;
+      const result = await this.usersService.getSearchProfiles(profileId, keyword);
+      return new BaseResponse(true, '프로필 검색 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
