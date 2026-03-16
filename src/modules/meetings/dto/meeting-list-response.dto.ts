@@ -26,6 +26,9 @@ export class MeetingItemDto {
   @ApiProperty({ example: 1, description: '현재 확정된 인원수' })
   currentCount: number;
 
+  @ApiProperty({ example: 1, description: '신청한 팀수' })
+  totalGroupCount: number;
+
   @ApiProperty({ example: 'OPEN', enum: ['OPEN', 'CLOSED'] })
   status: string;
 

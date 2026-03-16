@@ -71,6 +71,7 @@ export class MeetingsService {
             : undefined,
         },
         include: {
+          participants: true,
           creator: {
             select: {
               name: true,
@@ -79,7 +80,7 @@ export class MeetingsService {
           },
           _count: {
             select: {
-              participants: { where: { status: 'ACCEPTED' } },
+              participants: true,
             },
           },
         },
@@ -89,22 +90,24 @@ export class MeetingsService {
       }),
     ]);
 
-    const meetingItems = meetings.map(
-      (m) =>
-        new MeetingItemDto({
-          id: m.id,
-          title: m.title,
-          location: m.location,
-          memberCount: m.capacity,
-          currentCount: m._count.participants,
-          status: m.status,
-          dateTime: m.dateTime.toISOString(),
-          creator: {
-            name: m.creator.name,
-            major: m.creator.major,
-          },
-        }),
-    );
+    const meetingItems = meetings.map((m) => {
+      return new MeetingItemDto({
+        id: m.id,
+        title: m.title,
+        location: m.location,
+        memberCount: m.capacity,
+        currentCount: m.participants.filter(
+          (p) => p.status === 'ACCEPTED' && p.profileId != m.creatorId,
+        ).length,
+        totalGroupCount: m._count.participants,
+        status: m.status,
+        dateTime: m.dateTime.toISOString(),
+        creator: {
+          name: m.creator.name,
+          major: m.creator.major,
+        },
+      });
+    });
 
     return new MeetingListResponseDto({
       meetings: meetingItems,
@@ -130,7 +133,7 @@ export class MeetingsService {
         participants: {
           include: {
             profile: {
-              select: { name: true, major: true, profileImage: true },
+              select: { name: true, major: true, profileImages: true },
             },
           },
         },
@@ -185,7 +188,7 @@ export class MeetingsService {
             profile: {
               name: p.profile.name,
               major: p.profile.major,
-              profileImage: p.profile.profileImage,
+              profileImage: p.profile.profileImages[0] || null,
             },
           }))
         : null,

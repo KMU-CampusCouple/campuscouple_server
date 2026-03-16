@@ -100,11 +100,13 @@ export class UpdateProfileDto {
   };
 
   @ApiProperty({
-    description: '프로필 이미지 URL',
-    example: 'https://example.com/image.jpg',
+    type: 'array',
+    items: {
+      type: 'string',
+      format: 'binary',
+    },
+    description: '업로드할 이미지 파일 리스트',
     required: false,
   })
-  @IsOptional()
-  @IsString()
-  profileImage?: string;
+  images?: Express.Multer.File[];
 }

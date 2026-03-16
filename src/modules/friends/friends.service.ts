@@ -32,7 +32,7 @@ export class FriendsService {
         profileId: friendProfile.id,
         name: friendProfile.name,
         univ: friendProfile.univ,
-        profileImage: friendProfile.profileImage,
+        profileImage: friendProfile.profileImages[0] || null,
       });
     });
 
@@ -108,7 +108,7 @@ export class FriendsService {
         profileId: profile.id,
         name: profile.name,
         univ: profile.univ,
-        profileImage: profile.profileImage,
+        profileImage: profile.profileImages[0] || null,
       });
     });
 

@@ -1,4 +1,19 @@
-import { Controller, Post, Get, Body, Headers, UseGuards, Req, Patch, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  UseGuards,
+  Req,
+  Patch,
+  Param,
+  UploadedFiles,
+  UseInterceptors,
+  BadRequestException,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -7,6 +22,8 @@ import {
   ApiBearerAuth,
   ApiExtraModels,
   getSchemaPath,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -15,6 +32,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { GetSearchProfilesDto } from './dto/get-search-profiles-dto';
+import { GetProfileDetailDto } from './dto/get-profile-detail.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -22,9 +40,34 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('profile')
+  @UseInterceptors(FilesInterceptor('images', 6))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: '홍길동' },
+        gender: { type: 'string', enum: ['MALE', 'FEMALE'], example: 'MALE' },
+        univ: { type: 'string', example: '서울대학교' },
+        major: { type: 'string', example: '컴퓨터공학' },
+        studentId: { type: 'string', example: '20210001' },
+        mbti: { type: 'string', example: 'ENFP' },
+        region: { type: 'string', example: '서울' },
+        intro: { type: 'string', example: '안녕하세요!' },
+        snsAccounts: { type: 'object', example: { insta: 'hong_gildong' } },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
   @ApiOperation({
     summary: '유저 프로필 등록',
-    description: '인증된 사용자가 프로필 정보를 등록합니다.',
+    description: '인증된 사용자가 프로필 정보를 등록합니다. 이미지를 함께 업로드할 수 있습니다.',
   })
   @ApiOkResponse({
     description: '프로필 등록 성공',
@@ -60,12 +103,13 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   async createProfile(
     @Body() dto: CreateProfileDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Headers() headers: any,
   ): Promise<BaseResponse<{ userId: number; profileId: number }>> {
     try {
       // Bearer 토큰에서 tempToken 추출
       const token = headers?.authorization.replace('Bearer ', '');
-      const result = await this.usersService.createProfile(dto, token);
+      const result = await this.usersService.createProfile(dto, token, files);
       return new BaseResponse(true, '프로필이 성공적으로 등록되었습니다.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
@@ -90,9 +134,9 @@ export class UsersController {
             userId: { type: 'number', example: 1 },
             name: { type: 'string', example: '홍길동' },
             univ: { type: 'string', example: '서울대학교' },
-            profileImage: {
-              type: 'string',
-              example: 'https://example.com/image.jpg',
+            profileImages: {
+              type: 'array',
+              example: ['https://example.com/image.jpg', 'https://example.com/image2.jpg'],
             },
             snsAccounts: {
               type: 'object',
@@ -128,9 +172,33 @@ export class UsersController {
   }
 
   @Patch('profile')
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: '내 프로필 수정',
     description: '내 프로필 정보를 선택적으로 수정합니다.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: '홍길동' },
+        gender: { type: 'string', enum: ['MALE', 'FEMALE'], example: 'MALE' },
+        univ: { type: 'string', example: '서울대학교' },
+        major: { type: 'string', example: '컴퓨터공학' },
+        studentId: { type: 'string', example: '20210001' },
+        mbti: { type: 'string', example: 'ENFP' },
+        region: { type: 'string', example: '서울' },
+        intro: { type: 'string', example: '안녕하세요!' },
+        snsAccounts: { type: 'object', example: { insta: 'hong_gildong' } },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
   })
   @ApiOkResponse({
     description: '프로필 수정 성공',
@@ -303,6 +371,108 @@ export class UsersController {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getSearchProfiles(profileId, keyword);
       return new BaseResponse(true, '프로필 검색 성공', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Post('profile/upload-images')
+  @UseInterceptors(FilesInterceptor('images', 6))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: '프로필 이미지 업로드',
+    description: '프로필 이미지를 S3에 업로드하고 URL들을 반환합니다. 최대 6개까지 가능합니다.',
+  })
+  @ApiOkResponse({
+    description: '이미지 업로드 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '이미지 업로드 성공' },
+        data: {
+          type: 'array',
+          items: { type: 'string' },
+          example: [
+            'https://s3.amazonaws.com/bucket/image1.jpg',
+            'https://s3.amazonaws.com/bucket/image2.jpg',
+          ],
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: '업로드 실패',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: '이미지 업로드에 실패했습니다.' },
+        data: { type: 'null' },
+      },
+    },
+  })
+  async uploadProfileImages(
+    @UploadedFiles() files: Express.Multer.File[],
+  ): Promise<BaseResponse<string[]>> {
+    try {
+      if (!files || files.length === 0) {
+        throw new BadRequestException('업로드할 이미지가 없습니다.');
+      }
+      if (files.length > 6) {
+        throw new BadRequestException('프로필 이미지는 최대 6개까지 가능합니다.');
+      }
+      const urls = await this.usersService.uploadProfileImages(files);
+      return new BaseResponse(true, '이미지 업로드 성공', urls);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Get('profile/:id')
+  @ApiExtraModels(GetProfileDetailDto)
+  @ApiOperation({
+    summary: '프로필 조회',
+    description: '사용자가 유저 프로필을 조회합니다.',
+  })
+  @ApiOkResponse({
+    description: '프로필 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '프로필 조회 성공' },
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(GetProfileDetailDto),
+          },
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async getDetailProfile(
+    @Param('id', ParseIntPipe) profileId: number,
+  ): Promise<BaseResponse<GetProfileDetailDto>> {
+    try {
+      const result = await this.usersService.getProfileDetail(profileId);
+      return new BaseResponse(true, '프로필 조회 성공', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

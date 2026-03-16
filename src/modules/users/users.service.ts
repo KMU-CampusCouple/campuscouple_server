@@ -11,15 +11,22 @@ import { User, Profile } from '@prisma/client';
 import { GetMeetingsSummaryDto } from './dto/get-meetings-summary.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { GetSearchProfilesDto, SearchProfileDto } from './dto/get-search-profiles-dto';
+import { S3Service } from 'src/common/services/s3.service';
+import { GetProfileDetailDto } from './dto/get-profile-detail.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private s3Service: S3Service,
   ) {}
 
-  async createProfile(createProfileDto: CreateProfileDto, tempToken: string) {
+  async createProfile(
+    createProfileDto: CreateProfileDto,
+    tempToken: string,
+    files: Express.Multer.File[],
+  ) {
     // tempToken 검증
     let payload: any;
     try {
@@ -29,6 +36,15 @@ export class UsersService {
     }
     if (!payload.verified || !payload.email || !payload.tossUserKey) {
       throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+    }
+
+    // 프로필 이미지 업로드 (최대 6개)
+    let profileImages: string[] = [];
+    if (files && files.length > 0) {
+      if (files.length > 6) {
+        throw new BadRequestException('프로필 이미지는 최대 6개까지 가능합니다.');
+      }
+      profileImages = await this.uploadProfileImages(files);
     }
 
     // User 생성
@@ -47,7 +63,7 @@ export class UsersService {
             mbti: createProfileDto.mbti,
             intro: createProfileDto.intro,
             snsAccounts: createProfileDto.snsAccounts as any,
-            profileImage: createProfileDto.profileImage,
+            profileImages: profileImages,
           },
         },
       },
@@ -87,7 +103,7 @@ export class UsersService {
       userId: user.id,
       name: user.profile.name,
       univ: user.profile.univ,
-      profileImage: user.profile.profileImage,
+      profileImage: user.profile.profileImages || null,
       snsAccounts: user.profile.snsAccounts as any,
       // 필요한 필드 추가
     };
@@ -108,6 +124,14 @@ export class UsersService {
     });
   }
 
+  async uploadProfileImages(files: Express.Multer.File[]): Promise<string[]> {
+    const urls: string[] = [];
+    for (const file of files) {
+      const url = await this.s3Service.uploadFile(file);
+      urls.push(url);
+    }
+    return urls;
+  }
   async getMyMeetings(profileId: number) {
     const meetings = await this.prisma.meeting.findMany({
       where: { creatorId: profileId },
@@ -115,7 +139,7 @@ export class UsersService {
         participants: {
           include: {
             profile: {
-              select: { profileImage: true },
+              select: { profileImages: true },
             },
           },
         },
@@ -137,9 +161,6 @@ export class UsersService {
         title: meeting.title,
         memberCount: meeting.capacity,
         currentCount: meeting._count.participants,
-        participants: meeting.participants.map((p) => ({
-          profileImage: p.profile.profileImage,
-        })),
       });
     });
   }
@@ -160,7 +181,7 @@ export class UsersService {
             participants: {
               include: {
                 profile: {
-                  select: { profileImage: true },
+                  select: { profileImages: true },
                 },
               },
             },
@@ -187,9 +208,6 @@ export class UsersService {
         title: meetingParticipant.meeting.title,
         memberCount: meetingParticipant.meeting.capacity,
         currentCount: meetingParticipant.meeting._count.participants,
-        participants: meetingParticipant.meeting.participants.map((p) => ({
-          profileImage: p.profile.profileImage,
-        })),
       });
     });
   }
@@ -211,7 +229,7 @@ export class UsersService {
             participants: {
               include: {
                 profile: {
-                  select: { profileImage: true },
+                  select: { profileImages: true },
                 },
               },
             },
@@ -238,9 +256,6 @@ export class UsersService {
         title: meetingParticipant.meeting.title,
         memberCount: meetingParticipant.meeting.capacity,
         currentCount: meetingParticipant.meeting._count.participants,
-        participants: meetingParticipant.meeting.participants.map((p) => ({
-          profileImage: p.profile.profileImage,
-        })),
       });
     });
   }
@@ -283,12 +298,33 @@ export class UsersService {
           profileId: profile.id,
           name: profile.name,
           univ: profile.univ,
-          profileImage: profile.profileImage,
+          profileImage: profile.profileImages[0] || null,
           friendStatus: status,
         });
       }),
     });
 
     return result;
+  }
+
+  async getProfileDetail(profileId: number) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) throw new NotFoundException('해당 프로필은 찾을 수 없어요.');
+
+    return new GetProfileDetailDto({
+      profileId: profile.id,
+      name: profile.name,
+      gender: profile.gender,
+      univ: profile.univ,
+      major: profile.major,
+      studentId: profile.studentId,
+      mbti: profile.mbti,
+      intro: profile.intro,
+      snsAccounts: profile.snsAccounts as any,
+      profileImages: profile.profileImages,
+    });
   }
 }

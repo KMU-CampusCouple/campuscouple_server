@@ -41,7 +41,8 @@ model Profile {
   studentId    String   // 학번 (예: 20213049)
   mbti         String?
   intro        String?  // 한줄 소개
-  profileImage String?
+  // 프로필 이미지 (최대 6개)
+  profileImages String[] @default([]) // S3 URL 배열
 
   // SNS 정보 (JSON 타입으로 유연하게 관리)
   snsAccounts  Json?    // { "insta": "...", "kakao": "..." }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProfileDto {
@@ -57,14 +57,6 @@ export class CreateProfileDto {
   mbti?: string;
 
   @ApiProperty({
-    description: '거주 지역',
-    example: '서울',
-    required: false,
-  })
-  @IsString()
-  region: string;
-
-  @ApiProperty({
     description: '한줄 소개',
     example: '안녕하세요!',
     required: false,
@@ -96,13 +88,4 @@ export class CreateProfileDto {
     line?: string;
     telegram?: string;
   };
-
-  @ApiProperty({
-    description: '프로필 이미지 URL',
-    example: 'https://example.com/image.jpg',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  profileImage?: string;
 }
