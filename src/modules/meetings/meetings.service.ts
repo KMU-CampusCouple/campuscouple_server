@@ -158,6 +158,23 @@ export class MeetingsService {
     // 3. 방장(Owner) 여부 확인
     const isOwner = meeting.creatorId === currentProfileId;
 
+    let filteredParticipants: any[] = [];
+
+    if (isOwner) {
+      // 방장일 경우: 모든 참여자 노출
+      filteredParticipants = meeting.participants;
+    } else {
+      // 방장이 아닐 경우: 내가 포함된 '그룹'의 팀원 정보만 노출
+      const myParticipation = meeting.participants.find((p) => p.profileId === currentProfileId);
+
+      if (myParticipation) {
+        // 내가 신청한 경우, 나와 같은 groupId를 가진 사람들만 필터링
+        filteredParticipants = meeting.participants.filter(
+          (p) => p.groupId === myParticipation.groupId,
+        );
+      }
+    }
+
     // 4. 권한에 따른 참여자 데이터 가공
     let pendingGroupCount = 0;
 
@@ -179,19 +196,21 @@ export class MeetingsService {
         name: meeting.creator.name,
         major: meeting.creator.major,
       },
-      participants: isOwner
-        ? meeting.participants.map((p) => ({
-            id: p.id,
-            meetingId: p.meetingId,
-            profileId: p.profileId,
-            status: p.status,
-            profile: {
-              name: p.profile.name,
-              major: p.profile.major,
-              profileImage: p.profile.profileImages[0] || null,
-            },
-          }))
-        : null,
+      participants:
+        filteredParticipants.length > 0
+          ? filteredParticipants.map((p) => ({
+              id: p.id,
+              meetingId: p.meetingId,
+              profileId: p.profileId,
+              groupId: p.groupId,
+              status: p.status,
+              profile: {
+                name: p.profile.name,
+                major: p.profile.major,
+                profileImage: p.profile.profileImages[0] || null,
+              },
+            }))
+          : null,
       isOwner: isOwner,
     });
   }
@@ -373,6 +392,30 @@ export class MeetingsService {
           data: { status: 'CLOSED' },
         });
       }
+    });
+  }
+
+  async deleteParticipation(profileId: number, groupId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const participantations = await tx.meetingParticipant.findMany({
+        where: {
+          groupId: groupId,
+        },
+        select: { profileId: true },
+      });
+
+      if (participantations.length === 0)
+        throw new NotFoundException('해당 미팅 신청 그룹을 찾을 수 없어요.');
+
+      const isMember = participantations.some((p) => p.profileId === profileId);
+
+      if (!isMember) throw new ForbiddenException('삭제 권한이 없어요.');
+
+      await tx.meetingParticipant.deleteMany({
+        where: {
+          groupId: groupId,
+        },
+      });
     });
   }
 }

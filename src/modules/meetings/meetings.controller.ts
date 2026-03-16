@@ -284,4 +284,46 @@ export class MeetingsController {
       return new BaseResponse(false, error.message) as any;
     }
   }
+
+  @Delete('participation/:groupId')
+  @ApiOperation({
+    summary: '미팅 신청 삭제',
+    description: '미팅에 신청한 그룹을 삭제합니다.',
+  })
+  @ApiOkResponse({
+    description: '그룹 신청 삭제 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '미팅 참가 신청이 삭제되었어요.' },
+        data: { type: 'object', nullable: true, example: null },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: '잘못된 요청 파라미터 또는 조회 실패',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async deleteParticipation(
+    @Param('groupId') groupId: string,
+    @Req() req: any,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.meetingsService.deleteParticipation(profileId, groupId);
+      return new BaseResponse(true, '미팅 참가 신청이 삭제되었어요.', null);
+    } catch (error) {
+      return new BaseResponse(false, error.message, null);
+    }
+  }
 }
