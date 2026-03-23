@@ -12,6 +12,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { FriendsController } from './modules/friends/friends.controller';
 import { FriendsModule } from './modules/friends/friends.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { FriendsModule } from './modules/friends/friends.module';
     }),
     MeetingsModule,
     FriendsModule,
+    ReportsModule,
   ],
   controllers: [AppController, FriendsController],
   providers: [AppService, PrismaService],

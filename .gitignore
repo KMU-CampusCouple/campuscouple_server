@@ -23,3 +23,5 @@ lerna-debug.log*
 # Coverage directory
 /coverage
 dump.rdb
+
+CLAUDE.md

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateProfileDto {
@@ -76,6 +76,17 @@ export class UpdateProfileDto {
   intro?: string;
 
   @ApiProperty({
+    description: '대표 사진 인덱스 (profileImages 배열 내 위치, 0부터 시작)',
+    example: 0,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(5)
+  representativeImageIndex?: number;
+
+  @ApiProperty({
     description: 'SNS 계정 정보',
     example: {
       insta: 'hong_gildong',
@@ -98,6 +109,16 @@ export class UpdateProfileDto {
     line?: string;
     telegram?: string;
   };
+
+  @ApiProperty({
+    description: '대표 연락처 키 (snsAccounts의 키 중 하나)',
+    example: 'insta',
+    enum: ['insta', 'kakao', 'facebook', 'twitter', 'threads', 'line', 'telegram'],
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  primaryContact?: string;
 
   @ApiProperty({
     type: 'array',

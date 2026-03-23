@@ -26,6 +26,9 @@ model User {
 
   // 프로필과의 1:1 관계
   profile       Profile?
+
+  // 신고/건의
+  reports       Report[]
 }
 
 // 유저 프로필 정보 (서비스 활동 중심)
@@ -42,10 +45,12 @@ model Profile {
   mbti         String?
   intro        String?  // 한줄 소개
   // 프로필 이미지 (최대 6개)
-  profileImages String[] @default([]) // S3 URL 배열
+  profileImages           String[] @default([]) // S3 URL 배열
+  representativeImageIndex Int      @default(0)  // 대표 사진 인덱스 (profileImages 배열 내 위치)
 
   // SNS 정보 (JSON 타입으로 유연하게 관리)
-  snsAccounts  Json?    // { "insta": "...", "kakao": "..." }
+  snsAccounts    Json?    // { "insta": "...", "kakao": "..." }
+  primaryContact String?  // 대표 연락처 키 (예: "insta", "kakao")
 
   // 관계 설정
   createdMeetings Meeting[] @relation("CreatedMeetings")
@@ -128,4 +133,23 @@ model Friend {
   user2     Profile  @relation("FriendUser2", fields: [user2Id], references: [id])
 
   @@unique([user1Id, user2Id])
+}
+
+// 신고 유형
+enum ReportType {
+  BUG           // 버그 신고
+  SUGGESTION    // 기능/서비스 건의
+}
+
+// 버그 신고 및 건의사항
+model Report {
+  id          Int        @id @default(autoincrement())
+  type        ReportType
+  title       String
+  content     String
+
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime   @default(now())
 }

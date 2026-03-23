@@ -54,7 +54,9 @@ export class UsersController {
         mbti: { type: 'string', example: 'ENFP' },
         region: { type: 'string', example: '서울' },
         intro: { type: 'string', example: '안녕하세요!' },
+        representativeImageIndex: { type: 'integer', example: 0, description: '대표 사진 인덱스' },
         snsAccounts: { type: 'object', example: { insta: 'hong_gildong' } },
+        primaryContact: { type: 'string', example: 'insta', description: '대표 연락처 키' },
         images: {
           type: 'array',
           items: {
@@ -189,7 +191,9 @@ export class UsersController {
         mbti: { type: 'string', example: 'ENFP' },
         region: { type: 'string', example: '서울' },
         intro: { type: 'string', example: '안녕하세요!' },
+        representativeImageIndex: { type: 'integer', example: 0, description: '대표 사진 인덱스' },
         snsAccounts: { type: 'object', example: { insta: 'hong_gildong' } },
+        primaryContact: { type: 'string', example: 'insta', description: '대표 연락처 키' },
         images: {
           type: 'array',
           items: {

@@ -53,6 +53,19 @@ export class GetProfileDetailDto {
   @IsArray()
   profileImages: string[];
 
+  @ApiProperty({ example: 0, description: '대표 사진 인덱스' })
+  @IsNumber()
+  representativeImageIndex: number;
+
+  @ApiProperty({
+    example: 'insta',
+    description: '대표 연락처 키',
+    nullable: true,
+    enum: ['insta', 'kakao', 'facebook', 'twitter', 'threads', 'line', 'telegram'],
+  })
+  @IsString()
+  primaryContact: string | null;
+
   constructor(partial: Partial<GetProfileDetailDto>) {
     Object.assign(this, partial);
   }

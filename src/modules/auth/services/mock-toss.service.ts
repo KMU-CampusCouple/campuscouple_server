@@ -10,7 +10,7 @@ export class MockTossService implements ITossService {
 
   async getUserKey(accessToken: string): Promise<number> {
     // Mock: 하드코딩된 tossUserKey 반환 (BigInt 호환)
-    return 123456789;
-    // return 0;
+    // return 123456789;
+    return 0;
   }
 }

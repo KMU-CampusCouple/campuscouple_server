@@ -64,6 +64,8 @@ export class UsersService {
             intro: createProfileDto.intro,
             snsAccounts: createProfileDto.snsAccounts as any,
             profileImages: profileImages,
+            representativeImageIndex: createProfileDto.representativeImageIndex ?? 0,
+            primaryContact: createProfileDto.primaryContact ?? null,
           },
         },
       },
@@ -325,6 +327,8 @@ export class UsersService {
       intro: profile.intro,
       snsAccounts: profile.snsAccounts as any,
       profileImages: profile.profileImages,
+      representativeImageIndex: profile.representativeImageIndex,
+      primaryContact: profile.primaryContact,
     });
   }
 }
