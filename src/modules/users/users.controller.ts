@@ -79,7 +79,7 @@ export class UsersController {
         success: { type: 'boolean', example: true },
         message: {
           type: 'string',
-          example: '프로필이 성공적으로 등록되었습니다.',
+          example: '프로필을 등록했어요.',
         },
         data: {
           type: 'object',
@@ -97,7 +97,7 @@ export class UsersController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 토큰입니다.' },
+        message: { type: 'string', example: '토큰이 유효하지 않아요.' },
         data: { type: 'null' },
       },
     },
@@ -112,7 +112,7 @@ export class UsersController {
       // Bearer 토큰에서 tempToken 추출
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.usersService.createProfile(dto, token, files);
-      return new BaseResponse(true, '프로필이 성공적으로 등록되었습니다.', result);
+      return new BaseResponse(true, '프로필을 등록했어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -124,12 +124,12 @@ export class UsersController {
     description: 'JWT 토큰으로 인증된 사용자의 프로필 정보를 조회합니다.',
   })
   @ApiOkResponse({
-    description: '프로필 조회 성공',
+    description: '프로필을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '프로필 조회 성공' },
+        message: { type: 'string', example: '프로필을 불러왔어요.' },
         data: {
           type: 'object',
           properties: {
@@ -155,7 +155,7 @@ export class UsersController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 토큰입니다.' },
+        message: { type: 'string', example: '토큰이 유효하지 않아요.' },
         data: { type: 'null' },
       },
     },
@@ -167,7 +167,7 @@ export class UsersController {
       // TODO: JWT에서 userId 추출
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.usersService.getMyProfile(token);
-      return new BaseResponse(true, '프로필 조회 성공', result);
+      return new BaseResponse(true, '프로필을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -221,7 +221,7 @@ export class UsersController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 토큰입니다.' },
+        message: { type: 'string', example: '토큰이 유효하지 않아요.' },
         data: { type: 'null' },
       },
     },
@@ -235,7 +235,7 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       await this.usersService.updateProfile(updateProfileDto, profileId);
-      return new BaseResponse(true, '프로필 변경 성공', null);
+      return new BaseResponse(true, '프로필을 수정했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -248,12 +248,12 @@ export class UsersController {
     description: 'JWT 토큰으로 인증된 사용자가 작성한 미팅글을 조회합니다.',
   })
   @ApiOkResponse({
-    description: '내가 쓴 미팅글 조회 성공',
+    description: '내가 쓴 미팅글을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '내가 쓴 미팅글 조회 성공' },
+        message: { type: 'string', example: '내가 쓴 미팅글을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -269,7 +269,7 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getMyMeetings(profileId);
-      return new BaseResponse(true, '내가 쓴 미팅글 조회 성공', result);
+      return new BaseResponse(true, '내가 쓴 미팅글을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -282,12 +282,12 @@ export class UsersController {
     description: 'JWT 토큰으로 인증된 사용자가 신청한 미팅글을 조회합니다.',
   })
   @ApiOkResponse({
-    description: '내가 신청한 미팅글 조회 성공',
+    description: '내가 신청한 미팅글을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '내가 신청한 미팅글 조회 성공' },
+        message: { type: 'string', example: '내가 신청한 미팅글을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -303,7 +303,7 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getMyParticipations(profileId);
-      return new BaseResponse(true, '내가 신청한 미팅글 조회 성공', result);
+      return new BaseResponse(true, '내가 신청한 미팅글을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -316,12 +316,12 @@ export class UsersController {
     description: 'JWT 토큰으로 인증된 사용자가 매칭된 미팅글을 조회합니다.',
   })
   @ApiOkResponse({
-    description: '매칭된 미팅글 조회 성공',
+    description: '매칭된 미팅글을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '매칭된 미팅글 조회 성공' },
+        message: { type: 'string', example: '매칭된 미팅글을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -337,7 +337,7 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getMyMatchedMeetings(profileId);
-      return new BaseResponse(true, '매칭된 미팅글 조회 성공', result);
+      return new BaseResponse(true, '매칭된 미팅글을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -350,12 +350,12 @@ export class UsersController {
     description: '사용자가 검색한 키워드를 바탕으로 유저 프로필을 검색합니다.',
   })
   @ApiOkResponse({
-    description: '프로필 검색 성공',
+    description: '프로필 검색 결과를 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '프로필 검색 성공' },
+        message: { type: 'string', example: '프로필 검색 결과를 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -374,7 +374,7 @@ export class UsersController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.usersService.getSearchProfiles(profileId, keyword);
-      return new BaseResponse(true, '프로필 검색 성공', result);
+      return new BaseResponse(true, '프로필 검색 결과를 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -402,12 +402,12 @@ export class UsersController {
     description: '프로필 이미지를 S3에 업로드하고 URL들을 반환합니다. 최대 6개까지 가능합니다.',
   })
   @ApiOkResponse({
-    description: '이미지 업로드 성공',
+    description: '이미지를 업로드했어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '이미지 업로드 성공' },
+        message: { type: 'string', example: '이미지를 업로드했어요.' },
         data: {
           type: 'array',
           items: { type: 'string' },
@@ -425,7 +425,7 @@ export class UsersController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '이미지 업로드에 실패했습니다.' },
+        message: { type: 'string', example: '이미지 업로드에 실패했어요.' },
         data: { type: 'null' },
       },
     },
@@ -435,13 +435,13 @@ export class UsersController {
   ): Promise<BaseResponse<string[]>> {
     try {
       if (!files || files.length === 0) {
-        throw new BadRequestException('업로드할 이미지가 없습니다.');
+        throw new BadRequestException('업로드할 이미지가 없어요.');
       }
       if (files.length > 6) {
-        throw new BadRequestException('프로필 이미지는 최대 6개까지 가능합니다.');
+        throw new BadRequestException('프로필 이미지는 최대 6개까지 올릴 수 있어요.');
       }
       const urls = await this.usersService.uploadProfileImages(files);
-      return new BaseResponse(true, '이미지 업로드 성공', urls);
+      return new BaseResponse(true, '이미지를 업로드했어요.', urls);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -454,12 +454,12 @@ export class UsersController {
     description: '사용자가 유저 프로필을 조회합니다.',
   })
   @ApiOkResponse({
-    description: '프로필 조회 성공',
+    description: '프로필을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '프로필 조회 성공' },
+        message: { type: 'string', example: '프로필을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -476,7 +476,7 @@ export class UsersController {
   ): Promise<BaseResponse<GetProfileDetailDto>> {
     try {
       const result = await this.usersService.getProfileDetail(profileId);
-      return new BaseResponse(true, '프로필 조회 성공', result);
+      return new BaseResponse(true, '프로필을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

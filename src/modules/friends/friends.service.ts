@@ -36,7 +36,7 @@ export class FriendsService {
       });
     });
 
-    if (friends.length === 0) throw new NotFoundException('친구가 없어요.');
+    if (friends.length === 0) throw new NotFoundException('아직 친구가 없어요.');
 
     return new GetFriendsListDto({
       profiles: friends,
@@ -112,10 +112,41 @@ export class FriendsService {
       });
     });
 
-    if (friend_requests.length === 0) throw new NotFoundException('친구 신청이 오지 않았어요.');
+    if (friend_requests.length === 0) throw new NotFoundException('받은 친구 신청이 아직 없어요.');
 
     return new GetFriendRequestsDto({
       profiles: friend_requests,
+    });
+  }
+
+  async deleteFriend(profileId: number, friendProfileId: number) {
+    const [u1, u2] = [profileId, friendProfileId].sort((a, b) => a - b);
+
+    const friend = await this.prisma.friend.findUnique({
+      where: { user1Id_user2Id: { user1Id: u1, user2Id: u2 } },
+    });
+
+    if (!friend) throw new NotFoundException('친구 관계가 존재하지 않아요.');
+
+    await this.prisma.friend.delete({
+      where: { id: friend.id },
+    });
+  }
+
+  async cancelFriendRequest(profileId: number, requestId: number) {
+    const request = await this.prisma.friendRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!request || request.senderId !== profileId)
+      throw new NotFoundException('존재하지 않거나 권한이 없는 친구 신청이에요.');
+
+    if (request.status !== 'PENDING')
+      throw new BadRequestException('이미 처리된 신청은 취소할 수 없어요.');
+
+    await this.prisma.friendRequest.update({
+      where: { id: requestId },
+      data: { status: 'CANCELED' },
     });
   }
 

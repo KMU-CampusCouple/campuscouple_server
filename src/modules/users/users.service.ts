@@ -32,17 +32,17 @@ export class UsersService {
     try {
       payload = this.jwtService.verify(tempToken);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
     if (!payload.verified || !payload.email || !payload.tossUserKey) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+      throw new UnauthorizedException('인증이 필요한 토큰이에요.');
     }
 
     // 프로필 이미지 업로드 (최대 6개)
     let profileImages: string[] = [];
     if (files && files.length > 0) {
       if (files.length > 6) {
-        throw new BadRequestException('프로필 이미지는 최대 6개까지 가능합니다.');
+        throw new BadRequestException('프로필 이미지는 최대 6개까지 올릴 수 있어요.');
       }
       profileImages = await this.uploadProfileImages(files);
     }
@@ -86,11 +86,11 @@ export class UsersService {
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!payload.tossUserKey || !payload.sub) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+      throw new UnauthorizedException('인증이 필요한 토큰이에요.');
     }
     const user = (await this.prisma.user.findUnique({
       where: { id: payload.sub },
@@ -98,7 +98,7 @@ export class UsersService {
     })) as User & { profile: Profile | null };
 
     if (!user || !user.profile) {
-      throw new BadRequestException('프로필을 찾을 수 없습니다.');
+      throw new BadRequestException('프로필을 찾을 수 없어요.');
     }
 
     return {
@@ -154,7 +154,7 @@ export class UsersService {
     });
 
     if (meetings.length === 0) {
-      throw new NotFoundException('사용자가 작성한 미팅글이 없습니다.');
+      throw new NotFoundException('작성한 미팅글이 아직 없어요.');
     }
 
     return meetings.map((meeting) => {
@@ -201,7 +201,7 @@ export class UsersService {
     });
 
     if (meetingParticipants.length === 0) {
-      throw new NotFoundException('사용자가 신청한 미팅글이 없습니다.');
+      throw new NotFoundException('신청한 미팅글이 아직 없어요.');
     }
 
     return meetingParticipants.map((meetingParticipant) => {
@@ -249,7 +249,7 @@ export class UsersService {
     });
 
     if (matchedParticipations.length === 0) {
-      throw new NotFoundException('사용자가 매칭된 미팅글이 없습니다.');
+      throw new NotFoundException('매칭된 미팅글이 아직 없어요.');
     }
 
     return matchedParticipations.map((meetingParticipant) => {

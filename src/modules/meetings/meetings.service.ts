@@ -13,6 +13,7 @@ import { MeetingItemDto, MeetingListResponseDto } from './dto/meeting-list-respo
 import { MeetingDetailResponseDto } from './dto/meeting-detail-response.dto';
 import { PostMeetingRequestDto, PostMeetingResponseDto } from './dto/post-meeting.dto';
 import { PostMeetingParticipationDto } from './dto/post-meeting-participantation.dto';
+import { PatchMeetingDto } from './dto/patch-meeting.dto';
 import { v4 } from 'uuid';
 
 @Injectable()
@@ -28,11 +29,11 @@ export class MeetingsService {
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!payload.tossUserKey || !payload.sub) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+      throw new UnauthorizedException('인증이 필요한 토큰이에요.');
     }
 
     const { page = 1, limit = 10, search, status } = getMeetingsDto;
@@ -123,7 +124,7 @@ export class MeetingsService {
       select: { id: true },
     });
 
-    if (!userProfile) throw new NotFoundException('프로필을 찾을 수 없습니다.');
+    if (!userProfile) throw new NotFoundException('프로필을 찾을 수 없어요.');
 
     const currentProfileId = userProfile.id; // 현재 접속 유저 ID
 
@@ -152,7 +153,7 @@ export class MeetingsService {
     });
 
     if (!meeting) {
-      throw new NotFoundException(`${id}에 대한 미팅글을 찾을 수 없습니다.`);
+      throw new NotFoundException('미팅글을 찾을 수 없어요.');
     }
 
     // 3. 방장(Owner) 여부 확인
@@ -215,6 +216,27 @@ export class MeetingsService {
     });
   }
 
+  async updateMeeting(meetingId: number, profileId: number, dto: PatchMeetingDto) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      select: { creatorId: true },
+    });
+
+    if (!meeting) throw new NotFoundException('미팅글을 찾을 수 없어요.');
+    if (meeting.creatorId !== profileId) throw new ForbiddenException('미팅글을 수정할 권한이 없어요.');
+
+    const updateData: any = {};
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.content !== undefined) updateData.content = dto.content;
+    if (dto.location !== undefined) updateData.location = dto.location;
+    if (dto.dateTime !== undefined) updateData.dateTime = new Date(dto.dateTime);
+
+    await this.prisma.meeting.update({
+      where: { id: meetingId },
+      data: updateData,
+    });
+  }
+
   async deleteMeeting(meetingId: number, profileId: number) {
     await this.prisma.$transaction(async (tx) => {
       const meeting = await tx.meeting.findUnique({
@@ -223,11 +245,11 @@ export class MeetingsService {
       });
 
       if (!meeting) {
-        throw new NotFoundException(`${meetingId}번 미팅을 찾을 수 없습니다.`);
+        throw new NotFoundException('미팅글을 찾을 수 없어요.');
       }
 
       if (meeting.creatorId !== profileId) {
-        throw new ForbiddenException('삭제 권한이 없습니다.');
+        throw new ForbiddenException('미팅글을 삭제할 권한이 없어요.');
       }
 
       await tx.meetingParticipant.deleteMany({
@@ -246,11 +268,11 @@ export class MeetingsService {
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!payload.tossUserKey || !payload.sub) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+      throw new UnauthorizedException('인증이 필요한 토큰이에요.');
     }
 
     const { title, capacity, participantIds, description, location, dateTime } =
@@ -261,7 +283,7 @@ export class MeetingsService {
     });
 
     if (!profile) {
-      throw new NotFoundException(`${payload.sub}에 대한 프로필을 찾을 수 없습니다.`);
+      throw new NotFoundException('프로필을 찾을 수 없어요.');
     }
 
     const uuid = v4();
@@ -300,11 +322,11 @@ export class MeetingsService {
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!payload.tossUserKey || !payload.sub) {
-      throw new UnauthorizedException('인증되지 않은 토큰입니다.');
+      throw new UnauthorizedException('인증이 필요한 토큰이에요.');
     }
 
     const { meetingId, participantIds, description } = postMeetingParticipationDto;
@@ -323,14 +345,14 @@ export class MeetingsService {
         },
       });
 
-      if (!meeting) throw new NotFoundException(`${meetingId}에 대한 미팅을 찾을 수 없습니다.`);
+      if (!meeting) throw new NotFoundException('미팅글을 찾을 수 없어요.');
 
       const currentCount = meeting._count.participants;
       const incomingCount = participantIds.length;
 
       if (currentCount + incomingCount > meeting.capacity) {
         throw new BadRequestException(
-          `인원이 초과되었습니다. (남은 자리: ${meeting.capacity - currentCount}명)`,
+          `남은 자리가 ${meeting.capacity - currentCount}명이에요. 인원을 조정해 주세요.`,
         );
       }
 
@@ -344,7 +366,7 @@ export class MeetingsService {
 
       if (existingParticipants.length > 0) {
         const duplicateIds = existingParticipants.map((p) => p.profileId).join(', ');
-        throw new BadRequestException(`이미 신청한 유저(ID: ${duplicateIds})가 포함되어 있습니다.`);
+        throw new BadRequestException('이미 신청한 유저가 포함되어 있어요.');
       }
 
       const groupId = v4();
@@ -369,7 +391,7 @@ export class MeetingsService {
         include: { _count: { select: { participants: { where: { status: 'ACCEPTED' } } } } },
       });
 
-      if (meeting?.creatorId !== profileId) throw new ForbiddenException('승인 권한이 없습니다.');
+      if (meeting?.creatorId !== profileId) throw new ForbiddenException('승인할 권한이 없어요.');
 
       const groupParticipants = await tx.meetingParticipant.findMany({
         where: { meetingId, groupId, status: 'PENDING' },
@@ -378,7 +400,7 @@ export class MeetingsService {
       const incomingCount = groupParticipants.length;
 
       if (meeting._count.participants + incomingCount > meeting.capacity) {
-        throw new BadRequestException('수락 시 최대 인원을 초과합니다.');
+        throw new BadRequestException('수락하면 최대 인원을 초과해요.');
       }
 
       await tx.meetingParticipant.updateMany({
@@ -405,11 +427,11 @@ export class MeetingsService {
       });
 
       if (participantations.length === 0)
-        throw new NotFoundException('해당 미팅 신청 그룹을 찾을 수 없어요.');
+        throw new NotFoundException('미팅 신청 그룹을 찾을 수 없어요.');
 
       const isMember = participantations.some((p) => p.profileId === profileId);
 
-      if (!isMember) throw new ForbiddenException('삭제 권한이 없어요.');
+      if (!isMember) throw new ForbiddenException('삭제할 권한이 없어요.');
 
       await tx.meetingParticipant.deleteMany({
         where: {

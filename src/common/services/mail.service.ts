@@ -70,7 +70,7 @@ export class ConsoleMailService implements MailService {
       console.log('Email sent successfully');
     } catch (error) {
       console.error('Error sending email: ', error);
-      throw new InternalServerErrorException('메일 전송 중 오류가 발생했습니다.');
+      throw new InternalServerErrorException('메일 전송에 실패했어요. 다시 시도해 주세요.');
     }
   }
 }

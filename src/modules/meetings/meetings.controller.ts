@@ -30,6 +30,7 @@ import { MeetingDetailResponseDto } from './dto/meeting-detail-response.dto';
 import { PostMeetingRequestDto, PostMeetingResponseDto } from './dto/post-meeting.dto';
 import { PostMeetingParticipationDto } from './dto/post-meeting-participantation.dto';
 import { AcceptGroupDto } from './dto/patch-accept-group.dto';
+import { PatchMeetingDto } from './dto/patch-meeting.dto';
 
 @ApiTags('Meetings')
 @Controller('meetings')
@@ -48,7 +49,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅글을 성공적으로 조회하였습니다.' },
+        message: { type: 'string', example: '미팅글을 불러왔어요.' },
         data: {
           $ref: getSchemaPath(MeetingListResponseDto),
         },
@@ -61,7 +62,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -75,7 +76,7 @@ export class MeetingsController {
     try {
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.meetingsService.getMeetings(getMeetingsDto, token);
-      return new BaseResponse(true, '전체 미팅글 조회 성공', result);
+      return new BaseResponse(true, '미팅글을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -93,7 +94,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅글을 성공적으로 조회하였습니다.' },
+        message: { type: 'string', example: '미팅글을 불러왔어요.' },
         data: {
           $ref: getSchemaPath(MeetingDetailResponseDto),
         },
@@ -106,7 +107,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -120,7 +121,39 @@ export class MeetingsController {
     try {
       const userId: number = req.user.id;
       const result = await this.meetingsService.getMeetingDetail(id, userId);
-      return new BaseResponse(true, '미팅글 조회 성공', result);
+      return new BaseResponse(true, '미팅글을 불러왔어요.', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: '미팅글 수정',
+    description: '방장 권한이 있는 경우에만 미팅글의 제목, 내용, 장소, 시간을 수정합니다.',
+  })
+  @ApiOkResponse({
+    description: '미팅글 수정 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '미팅글을 수정했어요.' },
+        data: { type: 'object', nullable: true, example: null },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async updateMeeting(
+    @Param('id', ParseIntPipe) meetingId: number,
+    @Body() patchMeetingDto: PatchMeetingDto,
+    @Req() req: any,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.meetingsService.updateMeeting(meetingId, profileId, patchMeetingDto);
+      return new BaseResponse(true, '미팅글을 수정했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -135,7 +168,7 @@ export class MeetingsController {
     schema: {
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅글이 삭제되었습니다.' },
+        message: { type: 'string', example: '미팅글을 삭제했어요.' },
         data: { type: 'object', example: null, nullable: true },
       },
     },
@@ -149,7 +182,7 @@ export class MeetingsController {
     try {
       const profileId = req.user.profile.id;
       await this.meetingsService.deleteMeeting(meetingId, profileId);
-      return new BaseResponse(true, '미팅글이 삭제되었습니다.', null);
+      return new BaseResponse(true, '미팅글을 삭제했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -167,7 +200,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅글을 성공적으로 생성하였습니다.' },
+        message: { type: 'string', example: '미팅글을 만들었어요.' },
         data: {
           $ref: getSchemaPath(PostMeetingResponseDto),
         },
@@ -180,7 +213,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -194,7 +227,7 @@ export class MeetingsController {
     try {
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.meetingsService.postMeeting(postMeetingRequestDto, token);
-      return new BaseResponse(true, '미팅글 생성 성공', result);
+      return new BaseResponse(true, '미팅글을 만들었어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -211,7 +244,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅글을 성공적으로 생성하였습니다.' },
+        message: { type: 'string', example: '미팅글을 만들었어요.' },
         data: { type: 'object', nullable: true, example: null },
       },
     },
@@ -222,7 +255,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -236,7 +269,7 @@ export class MeetingsController {
     try {
       const token = headers?.authorization.replace('Bearer ', '');
       await this.meetingsService.postMeetingParticipation(postMeetingParticipantion, token);
-      return new BaseResponse(true, '미팅 신청 성공', null);
+      return new BaseResponse(true, '미팅에 신청했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -253,7 +286,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '그룹 신청 승인을 성공적으로 완료하였습니다.' },
+        message: { type: 'string', example: '그룹 신청을 승인했어요.' },
         data: { type: 'object', nullable: true, example: null },
       },
     },
@@ -264,7 +297,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -279,7 +312,7 @@ export class MeetingsController {
     try {
       const profileId: number = req.user.profile.id;
       await this.meetingsService.acceptParticipantGroup(meetingId, acceptDto.groupId, profileId);
-      return new BaseResponse(true, '그룹 신청 승인 성공', null);
+      return new BaseResponse(true, '그룹 신청을 승인했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -296,7 +329,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '미팅 참가 신청이 삭제되었어요.' },
+        message: { type: 'string', example: '미팅 참가 신청을 삭제했어요.' },
         data: { type: 'object', nullable: true, example: null },
       },
     },
@@ -307,7 +340,7 @@ export class MeetingsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효하지 않은 조회 조건입니다.' },
+        message: { type: 'string', example: '조회 조건이 올바르지 않아요.' },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -321,7 +354,7 @@ export class MeetingsController {
     try {
       const profileId = req.user.profile.id;
       await this.meetingsService.deleteParticipation(profileId, groupId);
-      return new BaseResponse(true, '미팅 참가 신청이 삭제되었어요.', null);
+      return new BaseResponse(true, '미팅 참가 신청을 삭제했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message, null);
     }

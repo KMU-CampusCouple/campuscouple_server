@@ -28,7 +28,7 @@ export class AuthController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '인증 코드가 발송되었습니다.' },
+        message: { type: 'string', example: '인증 코드를 보냈어요.' },
         data: { type: 'null' },
       },
     },
@@ -39,7 +39,7 @@ export class AuthController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '학교 이메일만 사용 가능합니다.' },
+        message: { type: 'string', example: '학교 이메일만 사용할 수 있어요.' },
         data: { type: 'null' },
       },
     },
@@ -64,7 +64,7 @@ export class AuthController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '인증이 완료되었습니다.' },
+        message: { type: 'string', example: '인증을 완료했어요.' },
         data: {
           type: 'object',
           properties: {
@@ -80,7 +80,7 @@ export class AuthController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '잘못된 인증 코드입니다.' },
+        message: { type: 'string', example: '인증 코드가 일치하지 않아요.' },
         data: { type: 'null' },
       },
     },
@@ -93,7 +93,7 @@ export class AuthController {
     try {
       const token = headers?.authorization.replace('Bearer ', '');
       const result = await this.authService.confirmVerificationCode(dto, token);
-      return new BaseResponse(true, '인증이 완료되었습니다.', result);
+      return new BaseResponse(true, '인증을 완료했어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -105,12 +105,12 @@ export class AuthController {
     description: '토스 authorization code로 로그인하여 JWT 토큰을 반환합니다.',
   })
   @ApiOkResponse({
-    description: '토스 로그인 성공',
+    description: '토스 로그인에 성공했어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '토스 로그인 성공' },
+        message: { type: 'string', example: '토스 로그인에 성공했어요.' },
         data: {
           type: 'object',
           properties: {
@@ -126,7 +126,7 @@ export class AuthController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '토스 로그인에 실패했습니다.' },
+        message: { type: 'string', example: '토스 로그인에 실패했어요.' },
         data: { type: 'null' },
       },
     },
@@ -134,7 +134,7 @@ export class AuthController {
   async tossLogin(@Body() dto: TossLoginDto): Promise<BaseResponse<{ access_token: string }>> {
     try {
       const result = await this.authService.tossLogin(dto);
-      return new BaseResponse(true, '토스 로그인 성공', result);
+      return new BaseResponse(true, '토스 로그인에 성공했어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

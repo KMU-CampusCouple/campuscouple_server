@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -41,7 +42,7 @@ export class FriendsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '내 친구 목록 조회 성공' },
+        message: { type: 'string', example: '친구 목록을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -57,7 +58,7 @@ export class FriendsController {
     try {
       const profileId = req.user.profile.id;
       const result = await this.friendsService.getFriends(profileId);
-      return new BaseResponse(true, '내 친구 목록 조회 성공', result);
+      return new BaseResponse(true, '친구 목록을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -110,7 +111,7 @@ export class FriendsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '친구 신청 목록 조회를 성공했어요.' },
+        message: { type: 'string', example: '친구 신청 목록을 불러왔어요.' },
         data: {
           type: 'array',
           items: {
@@ -127,7 +128,69 @@ export class FriendsController {
       const profileId = req.user.profile.id;
       const result = await this.friendsService.getFriendRequests(profileId);
 
-      return new BaseResponse(true, '친구 신청 목록 조회를 성공했어요.', result);
+      return new BaseResponse(true, '친구 신청 목록을 불러왔어요.', result);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Delete('requests/sent/:requestId')
+  @ApiOperation({
+    summary: '보낸 친구 신청 취소',
+    description: '내가 보낸 PENDING 상태의 친구 신청을 취소합니다.',
+  })
+  @ApiOkResponse({
+    description: '친구 신청 취소 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '친구 신청을 취소했어요.' },
+        data: { type: 'null' },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async cancelSentRequest(
+    @Param('requestId', ParseIntPipe) requestId: number,
+    @Req() req: any,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.friendsService.cancelFriendRequest(profileId, requestId);
+      return new BaseResponse(true, '친구 신청을 취소했어요.', null);
+    } catch (error) {
+      return new BaseResponse(false, error.message) as any;
+    }
+  }
+
+  @Delete(':friendProfileId')
+  @ApiOperation({
+    summary: '친구 끊기',
+    description: '특정 친구와의 친구 관계를 해제합니다.',
+  })
+  @ApiOkResponse({
+    description: '친구 끊기 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '친구 관계를 해제했어요.' },
+        data: { type: 'null' },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  async deleteFriend(
+    @Param('friendProfileId', ParseIntPipe) friendProfileId: number,
+    @Req() req: any,
+  ): Promise<BaseResponse<any>> {
+    try {
+      const profileId = req.user.profile.id;
+      await this.friendsService.deleteFriend(profileId, friendProfileId);
+      return new BaseResponse(true, '친구 관계를 해제했어요.', null);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -144,7 +207,7 @@ export class FriendsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '친구 신청을 수락했어요..' },
+        message: { type: 'string', example: '친구 신청을 수락했어요.' },
         data: {
           type: 'array',
           items: {
@@ -166,7 +229,7 @@ export class FriendsController {
       const { action } = body;
 
       if (!['ACCEPT', 'REJECT'].includes(action)) {
-        throw new BadRequestException('올바른 액션을 선택해주세요.');
+        throw new BadRequestException('올바른 액션을 선택해 주세요.');
       }
 
       await this.friendsService.handleFriendRequest(profileId, requestId, action);

@@ -32,7 +32,7 @@ export class ReportsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '신고/건의가 등록되었습니다.' },
+        message: { type: 'string', example: '신고/건의를 등록했어요.' },
         data: { $ref: getSchemaPath(GetReportDto) },
       },
     },
@@ -43,7 +43,7 @@ export class ReportsController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
-        message: { type: 'string', example: '유효성 검증에 실패했습니다.' },
+        message: { type: 'string', example: '입력 내용을 확인해 주세요.' },
         data: { type: 'null' },
       },
     },
@@ -57,7 +57,7 @@ export class ReportsController {
     try {
       const userId = req.user.id;
       const result = await this.reportsService.createReport(userId, createReportDto);
-      return new BaseResponse(true, '신고/건의가 등록되었습니다.', result);
+      return new BaseResponse(true, '신고/건의를 등록했어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }
@@ -71,12 +71,12 @@ export class ReportsController {
   })
   @ApiExtraModels(GetReportDto)
   @ApiOkResponse({
-    description: '신고/건의 목록 조회 성공',
+    description: '신고/건의 목록을 불러왔어요.',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: '신고/건의 목록 조회 성공' },
+        message: { type: 'string', example: '신고/건의 목록을 불러왔어요.' },
         data: {
           type: 'array',
           items: { $ref: getSchemaPath(GetReportDto) },
@@ -93,7 +93,7 @@ export class ReportsController {
     try {
       const userId = req.user.id;
       const result = await this.reportsService.getMyReports(userId, query);
-      return new BaseResponse(true, '신고/건의 목록 조회 성공', result);
+      return new BaseResponse(true, '신고/건의 목록을 불러왔어요.', result);
     } catch (error) {
       return new BaseResponse(false, error.message) as any;
     }

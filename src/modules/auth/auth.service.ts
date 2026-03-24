@@ -24,7 +24,7 @@ export class AuthService {
     const universityDomains = ['ac.kr', 'edu', 'university.edu']; // 예시
     const isValidDomain = universityDomains.some((domain) => dto.email.endsWith(domain));
     if (!isValidDomain) {
-      throw new BadRequestException('학교 이메일만 사용 가능합니다.');
+      throw new BadRequestException('학교 이메일만 사용할 수 있어요.');
     }
 
     // 이미 존재하는 사용자인지 확인
@@ -33,7 +33,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('이미 등록된 이메일입니다.');
+      throw new BadRequestException('이미 등록된 이메일이에요.');
     }
 
     // 6자리 랜덤 코드 생성
@@ -43,7 +43,7 @@ export class AuthService {
     // 이메일 발송
     await this.mailService.sendVerificationCode(dto.email.trim(), code);
 
-    return { message: '인증 코드가 발송되었습니다.' };
+    return { message: '인증 코드를 보냈어요.' };
   }
 
   async confirmVerificationCode(
@@ -55,15 +55,15 @@ export class AuthService {
     try {
       payload = this.jwtService.verify(token);
     } catch (error) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!payload.tossUserKey) {
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+      throw new UnauthorizedException('토큰이 유효하지 않아요.');
     }
 
     if (!storedCode || storedCode !== dto.code) {
-      throw new BadRequestException('잘못된 인증 코드입니다.');
+      throw new BadRequestException('인증 코드가 일치하지 않아요.');
     }
 
     // 임시 토큰 발급 (프로필 등록까지 유효)
@@ -111,7 +111,7 @@ export class AuthService {
         access_token: this.jwtService.sign(payload),
       };
     } catch (error) {
-      throw new BadRequestException('토스 로그인에 실패했습니다.');
+      throw new BadRequestException('토스 로그인에 실패했어요. 다시 시도해 주세요.');
     }
   }
 

@@ -33,7 +33,7 @@ export class S3Service {
       console.error('전체 스택:', error.stack);
 
       // 에러를 다시 던져서 NestJS가 적절한 HTTP 응답을 보내게 합니다.
-      throw new InternalServerErrorException('이미지 업로드에 실패했습니다.');
+      throw new InternalServerErrorException('이미지 업로드에 실패했어요. 다시 시도해 주세요.');
     }
   }
 }
